@@ -1,0 +1,15 @@
+# Dossiers de dépendances : très lourds, recréés par « npm install »
+node_modules/
+
+# Fichiers de compilation : recréés automatiquement
+dist/
+build/
+
+# Fichiers secrets (mots de passe, clés) : à ne JAMAIS envoyer sur Git
+.env
+.env.*
+# Exception : le modèle sans secrets, lui, peut être partagé
+!.env.example
+
+# Fichiers créés par Windows
+Thumbs.db
