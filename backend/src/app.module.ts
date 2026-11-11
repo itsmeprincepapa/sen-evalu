@@ -1,19 +1,35 @@
 import { Module } from '@nestjs/common';
-import { createObserveModule } from '@nestjs/observe';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
-export const { ObserveModule, ObserveInstrument } = createObserveModule();
-
 @Module({
   imports: [
-    // Distributed tracing, auto-correlated logs, request/job metrics, error
-    // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com,
-    // then run `npx @nestjs/observe link` to write your key pair into .env.
-    ObserveModule.forRoot({
-      appKey: process.env.OBSERVE_APP_KEY ?? 'YOUR_APP_KEY',
-      appSecret: process.env.OBSERVE_APP_SECRET ?? 'YOUR_APP_SECRET',
-      serviceId: 'backend',
+    // Lit le fichier .env et rend ses valeurs disponibles dans toute l'application
+    ConfigModule.forRoot({ isGlobal: true }),
+
+    // Connexion à MySQL. « forRootAsync » attend que le .env soit lu
+    // avant de construire la configuration.
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'mysql',
+        // getOrThrow : le serveur refuse de démarrer si la variable manque dans .env
+        host: config.getOrThrow<string>('DB_HOST'),
+        // Les valeurs du .env sont du texte : on convertit le port en nombre
+        port: Number(config.get('DB_PORT', '3306')),
+        username: config.getOrThrow<string>('DB_USER'),
+        password: config.getOrThrow<string>('DB_PASSWORD'),
+        database: config.getOrThrow<string>('DB_NAME'),
+        // Même encodage que la base : accents et caractères spéciaux
+        charset: 'utf8mb4',
+        // Les entités (tables) déclarées dans les modules seront trouvées toutes seules
+        autoLoadEntities: true,
+        // NE JAMAIS METTRE true : la structure de la base ne doit changer
+        // que par des migrations, jamais automatiquement (risque de perte de données)
+        synchronize: false,
+      }),
     }),
   ],
   controllers: [AppController],
