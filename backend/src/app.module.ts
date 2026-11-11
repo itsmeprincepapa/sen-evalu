@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { toutesLesEntites } from './database/entities';
 
 @Module({
   imports: [
@@ -24,8 +25,8 @@ import { AppService } from './app.service';
         database: config.getOrThrow<string>('DB_NAME'),
         // Même encodage que la base : accents et caractères spéciaux
         charset: 'utf8mb4',
-        // Les entités (tables) déclarées dans les modules seront trouvées toutes seules
-        autoLoadEntities: true,
+                // La liste de nos tables (entités), définie dans database/entities/index.ts
+        entities: toutesLesEntites,
         // NE JAMAIS METTRE true : la structure de la base ne doit changer
         // que par des migrations, jamais automatiquement (risque de perte de données)
         synchronize: false,
