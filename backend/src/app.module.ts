@@ -25,6 +25,9 @@ import { toutesLesEntites } from './database/entities';
         database: config.getOrThrow<string>('DB_NAME'),
         // Même encodage que la base : accents et caractères spéciaux
         charset: 'utf8mb4',
+                // « Z » = heure universelle (UTC) : toutes les dates sont enregistrées
+        // de la même façon, sans décalage entre votre ordinateur et un futur hébergeur.
+        timezone: 'Z',
                 // La liste de nos tables (entités), définie dans database/entities/index.ts
         entities: toutesLesEntites,
         // NE JAMAIS METTRE true : la structure de la base ne doit changer

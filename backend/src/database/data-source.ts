@@ -12,6 +12,9 @@ export default new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   charset: 'utf8mb4',
+          // « Z » = heure universelle (UTC) : toutes les dates sont enregistrées
+        // de la même façon, sans décalage entre votre ordinateur et un futur hébergeur.
+        timezone: 'Z',
   entities: toutesLesEntites,
   // Dossier où sont rangés les fichiers de migration
   migrations: ['src/database/migrations/*.ts'],
