@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { toutesLesEntites } from './database/entities';
 import { PassageModule } from './passage/passage.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -36,6 +37,10 @@ import { PassageModule } from './passage/passage.module';
         synchronize: false,
       }),
     }),
+
+        // Active les tâches automatiques (@Interval). À appeler UNE SEULE FOIS, ici.
+    ScheduleModule.forRoot(),
+    
         // Le passage d'une évaluation par un étudiant
     PassageModule,
   ],

@@ -73,6 +73,14 @@ async function main() {
       );
     }
 
+        // Réglages facultatifs, donnés en minutes après la commande :
+    //   npm run seed -- 5 2   =>  durée de 5 minutes, plage horaire de 2 minutes
+    const dureeMinutes = Number(process.argv[2] ?? 10);
+    const plageMinutes = Number(process.argv[3] ?? 360);
+    if (!(dureeMinutes > 0) || !(plageMinutes > 0)) {
+      throw new Error('La durée et la plage doivent être des nombres positifs.');
+    }
+
     // 4. L'évaluation de test.
     // La plage horaire est large (de il y a 1 h à dans 6 h) pour laisser du temps aux essais.
     // La durée est courte (10 minutes) pour voir le chronomètre descendre vite.
@@ -84,8 +92,8 @@ async function main() {
         membreId: membre.id,
         titre: 'Contrôle de test',
         debut: new Date(maintenant - 60 * 60 * 1000),
-        fin: new Date(maintenant + 6 * 60 * 60 * 1000),
-        dureeMinutes: 10,
+        fin: new Date(maintenant + plageMinutes * 60 * 1000),
+           dureeMinutes,
         statut: StatutEvaluation.PLANIFIEE,
         lien,
         // Les codes de test : accès « 1234 », sortie « 9999 » (stockés hachés).
@@ -173,6 +181,7 @@ async function main() {
     console.log('--- Données de test créées ---');
     console.log('Lien de l’évaluation :', lien);
     console.log('Code d’accès : 1234   |   Code de sortie : 9999');
+        console.log(`Durée : ${dureeMinutes} min | plage horaire : ${plageMinutes} min à partir de maintenant`);
     console.log('Étudiants validés : awa@test.com, cheikh@test.com');
   } finally {
     // Quoi qu'il arrive, on referme la connexion à la base.

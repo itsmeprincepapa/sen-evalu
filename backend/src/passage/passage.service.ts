@@ -20,10 +20,7 @@ import {
 } from '../database/enums';
 import { EntrerDto } from './dto/entrer.dto';
 import { SauvegarderDto } from './dto/sauvegarder.dto';
-
-// Marge accordée après l'heure de fin : une sauvegarde partie juste avant la fin
-// peut arriver quelques secondes plus tard à cause du réseau.
-const MARGE_FIN_SECONDES = 5;
+import { MARGE_FIN_SECONDES } from './constantes';
 
 // Taille maximale d'une réponse rédigée ou d'un programme (en caractères).
 const LONGUEUR_MAX_TEXTE = 20_000;

@@ -4,6 +4,7 @@ import { Evaluation } from '../database/entities/evaluation.entity';
 import { Participation } from '../database/entities/participation.entity';
 import { Question } from '../database/entities/question.entity';
 import { Reponse } from '../database/entities/reponse.entity';
+import { ClotureAutomatiqueService } from './cloture-automatique.service';
 import { PassageController } from './passage.controller';
 import { PassageService } from './passage.service';
 import { SessionEtudiantGuard } from './session-etudiant.guard';
@@ -16,6 +17,7 @@ import { SessionEtudiantGuard } from './session-etudiant.guard';
     TypeOrmModule.forFeature([Evaluation, Participation, Question, Reponse]),
   ],
   controllers: [PassageController],
-  providers: [PassageService, SessionEtudiantGuard],
+  // Le service de clôture automatique démarre avec le serveur.
+  providers: [PassageService, SessionEtudiantGuard, ClotureAutomatiqueService],
 })
 export class PassageModule {}
