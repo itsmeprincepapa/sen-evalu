@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ErreurApi, lireEtat } from '../api/passage';
+import { ErreurApi, ErreurReseau, lireEtat } from '../api/passage';
 import { EcranFin } from '../components/EcranFin';
 import { Epreuve } from '../components/Epreuve';
 import { FormulaireEntree } from '../components/FormulaireEntree';
@@ -84,34 +84,65 @@ export function PagePassage() {
     lien && lireSession(lien) ? { nom: 'chargement' } : { nom: 'entree' },
   );
 
+  // Vrai tant qu'on essaie de reprendre alors que le serveur est injoignable.
+  const [reconnexion, setReconnexion] = useState(false);
+
   // REPRISE après un rechargement de la page : on redemande l'état au serveur.
   useEffect(() => {
     if (!lien) return;
     const session = lireSession(lien);
     if (!session) return;
 
-    lireEtat(session.jeton)
-      .then((etat) => {
-        setPhase(
-          versEpreuve(lien, { ...etat, jeton: session.jeton }, session.email),
-        );
-      })
-      .catch((erreur: unknown) => {
-        effacerSession();
-        // Le temps est écoulé ou l'évaluation est terminée : écran de fin.
-        if (
-          erreur instanceof ErreurApi &&
-          erreur.statut === 403 &&
-          (erreur.code === 'TEMPS_ECOULE' || erreur.code === 'TERMINE')
-        ) {
-          setPhase({
-            nom: 'fin',
-            motif: erreur.code === 'TEMPS_ECOULE' ? 'temps' : 'termine',
-          });
-        } else {
-          setPhase({ nom: 'entree' }); // session invalide ou serveur arrêté
-        }
-      });
+    // Devient vrai si on quitte la page : on arrête alors de réessayer.
+    let annule = false;
+    let minuteur: ReturnType<typeof setTimeout> | undefined;
+
+    const reprendre = () => {
+      lireEtat(session.jeton)
+        .then((etat) => {
+          if (annule) return;
+          setReconnexion(false);
+          setPhase(
+            versEpreuve(lien, { ...etat, jeton: session.jeton }, session.email),
+          );
+        })
+        .catch((erreur: unknown) => {
+          if (annule) return;
+
+          // Serveur injoignable : on GARDE la session et on réessaie dans 5 secondes.
+          // (Les réponses de l'étudiant sont en sécurité dans la copie locale.)
+          if (erreur instanceof ErreurReseau) {
+            setReconnexion(true);
+            minuteur = setTimeout(reprendre, 5_000);
+            return;
+          }
+
+          // Le serveur a répondu par un refus : la session ne sert plus.
+          effacerSession();
+          setReconnexion(false);
+          if (
+            erreur instanceof ErreurApi &&
+            erreur.statut === 403 &&
+            (erreur.code === 'TEMPS_ECOULE' || erreur.code === 'TERMINE')
+          ) {
+            // Le temps est écoulé ou l'évaluation est terminée : écran de fin.
+            setPhase({
+              nom: 'fin',
+              motif: erreur.code === 'TEMPS_ECOULE' ? 'temps' : 'termine',
+            });
+          } else {
+            setPhase({ nom: 'entree' }); // session invalide
+          }
+        });
+    };
+
+    reprendre();
+
+    // Nettoyage : si la page est quittée, on annule la tentative programmée.
+    return () => {
+      annule = true;
+      clearTimeout(minuteur);
+    };
   }, [lien]);
 
   if (!lien) {
@@ -124,7 +155,13 @@ export function PagePassage() {
   }
 
   if (phase.nom === 'chargement') {
-    return <p className="p-6">Chargement…</p>;
+    return (
+      <p className="p-6">
+        {reconnexion
+          ? 'Serveur injoignable. Nouvelle tentative toutes les 5 secondes… Vos réponses sont gardées sur cet ordinateur.'
+          : 'Chargement…'}
+      </p>
+    );
   }
 
   if (phase.nom === 'entree') {

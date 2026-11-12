@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { toutesLesEntites } from './database/entities';
 import { PassageModule } from './passage/passage.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -40,6 +41,9 @@ import { ScheduleModule } from '@nestjs/schedule';
 
         // Active les tâches automatiques (@Interval). À appeler UNE SEULE FOIS, ici.
     ScheduleModule.forRoot(),
+    
+        // La connexion Google et les sessions
+    AuthModule,
     
         // Le passage d'une évaluation par un étudiant
     PassageModule,
