@@ -74,7 +74,8 @@ export class Participation extends BaseEntite {
   tempsSupplementaireSecondes!: number;
 
   // --- Connexion et session unique ---
-  // Identifiant de la session active : une 2e connexion avec un autre identifiant est bloquée.
+   // L'index accélère la recherche d'une session : elle est faite à CHAQUE requête d'un étudiant.
+  @Index()
   @Column({ type: 'varchar', length: 64, nullable: true })
   sessionId!: string | null;
 

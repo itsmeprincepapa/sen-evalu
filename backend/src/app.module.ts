@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { toutesLesEntites } from './database/entities';
+import { PassageModule } from './passage/passage.module';
 
 @Module({
   imports: [
@@ -35,6 +36,8 @@ import { toutesLesEntites } from './database/entities';
         synchronize: false,
       }),
     }),
+        // Le passage d'une évaluation par un étudiant
+    PassageModule,
   ],
   controllers: [AppController],
   providers: [AppService],
