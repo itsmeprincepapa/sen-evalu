@@ -1,12 +1,11 @@
-// Page de test : si le titre est grand, bleu et en gras, Tailwind fonctionne.
-function App() {
-  return (
-    // « text-3xl font-bold text-blue-600 » sont des classes Tailwind :
-    // taille de texte 3xl, gras, couleur bleue
-    <h1 className="text-3xl font-bold text-blue-600 p-6">
-      sen-evalu
-    </h1>
-  )
-}
+import { PagePassage } from './pages/PagePassage';
 
-export default App
+// Une seule page pour l'instant. Plus tard : un routeur (React Router)
+// pour les autres écrans (enseignant, administrateur...).
+export default function App() {
+  return (
+    <div className="min-h-screen bg-slate-100 text-slate-900">
+      <PagePassage />
+    </div>
+  );
+}
