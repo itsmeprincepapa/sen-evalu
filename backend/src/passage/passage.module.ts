@@ -8,13 +8,20 @@ import { ClotureAutomatiqueService } from './cloture-automatique.service';
 import { PassageController } from './passage.controller';
 import { PassageService } from './passage.service';
 import { SessionEtudiantGuard } from './session-etudiant.guard';
+import { Etablissement } from '../database/entities/etablissement.entity';
 
 // Un module regroupe tout ce qui concerne UNE fonction de l'application :
 // ici, le passage d'une évaluation par un étudiant.
 @Module({
   // Les tables auxquelles ce module a le droit d'accéder.
   imports: [
-    TypeOrmModule.forFeature([Evaluation, Participation, Question, Reponse]),
+    TypeOrmModule.forFeature([
+      Evaluation,
+      Participation,
+      Question,
+      Reponse,
+      Etablissement,
+    ]),
   ],
   controllers: [PassageController],
   // Le service de clôture automatique démarre avec le serveur.

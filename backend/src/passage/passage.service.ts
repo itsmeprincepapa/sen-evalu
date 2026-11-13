@@ -14,6 +14,7 @@ import { Participation } from '../database/entities/participation.entity';
 import { Question } from '../database/entities/question.entity';
 import { Reponse } from '../database/entities/reponse.entity';
 import {
+  StatutEtablissement,
   StatutEvaluation,
   StatutParticipation,
   TypeQuestion,
@@ -21,6 +22,7 @@ import {
 import { EntrerDto } from './dto/entrer.dto';
 import { SauvegarderDto } from './dto/sauvegarder.dto';
 import { MARGE_FIN_SECONDES } from './constantes';
+import { Etablissement } from '../database/entities/etablissement.entity';
 
 // Taille maximale d'une réponse rédigée ou d'un programme (en caractères).
 const LONGUEUR_MAX_TEXTE = 20_000;
@@ -33,6 +35,8 @@ export class PassageService {
   constructor(
     @InjectRepository(Evaluation)
     private readonly evaluations: Repository<Evaluation>,
+        @InjectRepository(Etablissement)
+    private readonly etablissements: Repository<Etablissement>,
     @InjectRepository(Participation)
     private readonly participations: Repository<Participation>,
     @InjectRepository(Question)
@@ -52,6 +56,16 @@ export class PassageService {
     // 1. L'évaluation existe-t-elle ?
     const evaluation = await this.evaluations.findOneBy({ lien: dto.lien });
     if (!evaluation) throw this.refus('lien inconnu');
+        // Établissement désactivé par le super-administrateur : les évaluations déjà commencées
+    // (statut « en cours ») se terminent normalement, mais aucune nouvelle ne démarre.
+    if (evaluation.statut !== StatutEvaluation.EN_COURS) {
+      const etablissement = await this.etablissements.findOneBy({
+        id: evaluation.etablissementId,
+      });
+      if (etablissement?.statut !== StatutEtablissement.ACTIF) {
+        throw this.refus('établissement inactif');
+      }
+    }
 
     // 2. Sommes-nous dans la plage horaire de l'évaluation ?
     if (maintenant < evaluation.debut || maintenant > evaluation.fin) {

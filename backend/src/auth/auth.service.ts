@@ -1,4 +1,9 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -6,6 +11,7 @@ import { OAuth2Client, type TokenPayload } from 'google-auth-library';
 import { Repository } from 'typeorm';
 import { Membre } from '../database/entities/membre.entity';
 import { Utilisateur } from '../database/entities/utilisateur.entity';
+import { RoleMembre, StatutEtablissement } from '../database/enums';
 
 @Injectable()
 export class AuthService {
@@ -130,6 +136,42 @@ export class AuthService {
       );
     }
     return utilisateur;
+  }
+
+    // ---------------------------------------------------------------------------
+  // CONTEXTE D'ÉTABLISSEMENT : la personne a-t-elle le droit de travailler dans cet
+  // établissement, avec ce rôle, maintenant ? Appelée par ContexteEtablissementGuard
+  // à CHAQUE requête : désactiver un établissement coupe donc l'accès immédiatement.
+  // ---------------------------------------------------------------------------
+  async membreActif(
+    utilisateur: Utilisateur,
+    etablissementId: string,
+    rolesAutorises?: RoleMembre[],
+  ): Promise<Membre> {
+    const membre = await this.membres.findOne({
+      where: { utilisateurId: utilisateur.id, etablissementId },
+      relations: { etablissement: true },
+    });
+
+    // Même message si l'établissement n'existe pas ou si la personne n'en est pas membre :
+    // on ne révèle pas l'existence d'établissements à des inconnus.
+    if (!membre) {
+      throw new ForbiddenException('Vous n’avez pas accès à cet établissement.');
+    }
+
+    // L'interrupteur du super-administrateur.
+    if (membre.etablissement.statut !== StatutEtablissement.ACTIF) {
+      throw new ForbiddenException({
+        code: 'ETABLISSEMENT_INACTIF',
+        message: 'Cet établissement est désactivé.',
+      });
+    }
+
+    // Le rôle de la personne dans CET établissement.
+    if (rolesAutorises?.length && !rolesAutorises.includes(membre.role)) {
+      throw new ForbiddenException('Votre rôle ne permet pas cette action.');
+    }
+    return membre;
   }
 
   // ===========================================================================

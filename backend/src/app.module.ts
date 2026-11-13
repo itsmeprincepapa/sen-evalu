@@ -7,6 +7,7 @@ import { toutesLesEntites } from './database/entities';
 import { PassageModule } from './passage/passage.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
+import { EtablissementsModule } from './etablissements/etablissements.module';
 
 @Module({
   imports: [
@@ -44,6 +45,9 @@ import { AuthModule } from './auth/auth.module';
     
         // La connexion Google et les sessions
     AuthModule,
+
+        // La gestion des établissements (super-administrateur) et le contexte d'établissement
+    EtablissementsModule,
     
         // Le passage d'une évaluation par un étudiant
     PassageModule,
