@@ -6,8 +6,8 @@ import type { RoleMembre } from '../types';
 interface Props {
   children: ReactNode;
   superAdmin?: boolean; // vrai : réservé au super-administrateur
-  role?: RoleMembre; // réservé aux personnes ayant ce rôle dans leur établissement actif
-}
+  role?: RoleMembre | RoleMembre[]; }
+  // réservé aux personnes ayant l'un de ces rôles dans leur établissement actif
 
 // Entoure un écran qui exige une connexion.
 //  - pas connecté : renvoi vers « /connexion »
@@ -44,9 +44,12 @@ export function RouteProtegee({ children, superAdmin = false, role }: Props) {
     return <Navigate to="/" replace />;
   }
 
-  // Écran réservé à un rôle : il faut un établissement actif ET que le rôle y corresponde.
-  if (role && etablissementActif?.role !== role) {
-    return <Navigate to="/" replace />;
+    // Écran réservé à un ou plusieurs rôles : il faut un établissement actif ET un rôle autorisé.
+  if (role) {
+    const autorises = Array.isArray(role) ? role : [role];
+    if (!etablissementActif || !autorises.includes(etablissementActif.role)) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;

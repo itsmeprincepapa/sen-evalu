@@ -126,3 +126,39 @@ export interface Enseignant {
   dejaConnecte: boolean; // vrai : il s'est déjà connecté une fois avec Google
   ajouteLe: string;
 }
+
+// --- Classes et étudiants (étape 5) ---
+
+// Une classe dans la liste (avec le nombre de ses étudiants).
+export interface ClasseResume {
+  id: string;
+  nom: string;
+  nbEtudiants: number;
+  creeLe: string;
+}
+
+// Un étudiant d'une classe.
+export interface EtudiantClasse {
+  id: string;
+  nom: string;
+  prenom: string;
+  email: string;
+}
+
+// Une ligne d'une liste collée que le serveur n'a pas pu lire.
+export interface LigneErreurImport {
+  ligne: number;
+  contenu: string;
+  raison: string;
+}
+
+// Le résumé renvoyé par le serveur pour un import (aperçu ou enregistrement).
+export interface ResumeImport {
+  confirme: boolean; // faux : simple aperçu, rien n'est enregistré
+  lignesLues: number;
+  reconnus: number;
+  nouveaux: number; // inconnus de l'école : seront créés
+  dejaConnusAjoutes: number; // connus de l'école : seront ajoutés à la classe
+  dejaDansLaClasse: number; // rien à faire
+  erreurs: LigneErreurImport[];
+}

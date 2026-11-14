@@ -18,8 +18,7 @@ export class ErreurApi extends Error {
 export class ErreurReseau extends Error {}
 
 export interface OptionsAppel {
-  methode: 'GET' | 'POST' | 'PUT' | 'PATCH';
-  jeton?: string; // jeton de session, envoyé dans l'en-tête Authorization
+  methode: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';  jeton?: string; // jeton de session, envoyé dans l'en-tête Authorization
   etablissementId?: string; // établissement choisi, envoyé dans l'en-tête X-Etablissement
   corps?: unknown; // données envoyées, transformées en JSON
 }

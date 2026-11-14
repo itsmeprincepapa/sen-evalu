@@ -6,6 +6,8 @@ import { PagePassage } from './pages/PagePassage';
 import { PageEtablissements } from './pages/super-admin/PageEtablissements';
 import { FournisseurSession } from './session/SessionContext';
 import { PageEnseignants } from './pages/ecole/PageEnseignants';
+import { PageClasse } from './pages/ecole/PageClasse';
+import { PageClasses } from './pages/ecole/PageClasses';
 
 // Le plan des adresses de l'application.
 export default function App() {
@@ -35,6 +37,24 @@ export default function App() {
               element={
                 <RouteProtegee role="admin">
                   <PageEnseignants />
+                </RouteProtegee>
+              }
+            />
+
+                        {/* Les classes : ouvertes aux administrateurs ET aux enseignants */}
+            <Route
+              path="/ecole/classes"
+              element={
+                <RouteProtegee role={['admin', 'enseignant']}>
+                  <PageClasses />
+                </RouteProtegee>
+              }
+            />
+            <Route
+              path="/ecole/classes/:id"
+              element={
+                <RouteProtegee role={['admin', 'enseignant']}>
+                  <PageClasse />
                 </RouteProtegee>
               }
             />

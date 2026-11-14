@@ -4,7 +4,7 @@ import { LIBELLES_ROLE } from '../lib/libelles';
 import { useSession } from '../session/SessionContext';
 
 // Accueil des enseignants et des administrateurs d'école.
-// Les cartes affichées dépendent du rôle dans l'établissement actif.
+// Les liens affichés dépendent du rôle dans l'établissement actif.
 export function PageAccueil() {
   const { profil, etablissementActif } = useSession();
 
@@ -28,18 +28,29 @@ export function PageAccueil() {
             {LIBELLES_ROLE[etablissementActif.role]}
           </p>
 
-          {etablissementActif.role === 'admin' && (
+          <div className="flex flex-wrap gap-3">
+            {/* Les classes : administrateurs et enseignants */}
             <Link
-              to="/ecole/enseignants"
-              className="inline-block rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              to="/ecole/classes"
+              className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
             >
-              Gérer les enseignants
+              Gérer les classes
             </Link>
-          )}
+
+            {/* Les enseignants : administrateurs seulement */}
+            {etablissementActif.role === 'admin' && (
+              <Link
+                to="/ecole/enseignants"
+                className="rounded border border-blue-600 px-4 py-2 text-blue-700 hover:bg-blue-50"
+              >
+                Gérer les enseignants
+              </Link>
+            )}
+          </div>
 
           {etablissementActif.role === 'enseignant' && (
-            <p className="text-slate-600">
-              Vos classes et vos évaluations arrivent prochainement.
+            <p className="mt-4 text-sm text-slate-500">
+              Vos évaluations arrivent prochainement.
             </p>
           )}
         </section>
