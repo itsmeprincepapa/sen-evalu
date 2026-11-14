@@ -5,6 +5,7 @@ import { PageConnexion } from './pages/PageConnexion';
 import { PagePassage } from './pages/PagePassage';
 import { PageEtablissements } from './pages/super-admin/PageEtablissements';
 import { FournisseurSession } from './session/SessionContext';
+import { PageEnseignants } from './pages/ecole/PageEnseignants';
 
 // Le plan des adresses de l'application.
 export default function App() {
@@ -28,7 +29,15 @@ export default function App() {
                 </RouteProtegee>
               }
             />
-
+            {/* Réservé aux administrateurs d'école (dans leur établissement actif) */}
+            <Route
+              path="/ecole/enseignants"
+              element={
+                <RouteProtegee role="admin">
+                  <PageEnseignants />
+                </RouteProtegee>
+              }
+            />
             {/* Accueil des autres personnes connectées */}
             <Route
               path="/"

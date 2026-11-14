@@ -39,4 +39,11 @@ export class Membre extends BaseEntite {
 
   @Column({ type: 'enum', enum: RoleMembre })
   role!: RoleMembre;
+
+  // Faux : l'administrateur a retiré l'accès de cette personne à l'établissement.
+  // On ne supprime JAMAIS un rattachement : les évaluations de l'enseignant restent en base.
+  @Column({ default: true })
+  actif!: boolean;
 }
+
+  

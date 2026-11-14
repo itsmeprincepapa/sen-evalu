@@ -88,8 +88,8 @@ export class AuthService {
   // ---------------------------------------------------------------------------
   async profil(utilisateur: Utilisateur) {
     const rattachements = await this.membres.find({
-      where: { utilisateurId: utilisateur.id },
-      relations: { etablissement: true },
+      // Seuls les rattachements encore ACTIFS : un accès retiré disparaît de la liste.
+      where: { utilisateurId: utilisateur.id, actif: true },      relations: { etablissement: true },
     });
 
     return {
@@ -157,6 +157,12 @@ export class AuthService {
     // on ne révèle pas l'existence d'établissements à des inconnus.
     if (!membre) {
       throw new ForbiddenException('Vous n’avez pas accès à cet établissement.');
+    }
+        // L'administrateur de l'école a retiré l'accès de cette personne.
+    if (!membre.actif) {
+      throw new ForbiddenException(
+        'Votre accès à cet établissement a été retiré.',
+      );
     }
 
     // L'interrupteur du super-administrateur.

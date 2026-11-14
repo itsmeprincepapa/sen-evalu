@@ -66,3 +66,63 @@ export interface AccuseSauvegarde {
   version: number;
   tempsRestantSecondes: number;
 }
+
+// --- Comptes, connexion et établissements (étape 4) ---
+
+export type StatutEtablissement = 'actif' | 'inactif';
+export type RoleMembre = 'admin' | 'enseignant';
+
+// La personne connectée.
+export interface Utilisateur {
+  id: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  estSuperAdmin: boolean;
+}
+
+// Le rôle de la personne dans UN établissement.
+export interface Rattachement {
+  etablissementId: string;
+  nom: string;
+  role: RoleMembre;
+  statut: StatutEtablissement;
+}
+
+// Réponse de « /auth/moi » : la personne et ses établissements.
+export interface Profil {
+  utilisateur: Utilisateur;
+  etablissements: Rattachement[];
+}
+
+// Réponse de « /auth/google » : le profil, plus la session.
+export interface ReponseConnexion extends Profil {
+  jeton: string;
+}
+
+export interface AdministrateurResume {
+  nom: string;
+  prenom: string;
+  email: string;
+}
+
+// Un établissement dans la liste du super-administrateur.
+export interface EtablissementListe {
+  id: string;
+  nom: string;
+  ville: string | null;
+  statut: StatutEtablissement;
+  creeLe: string;
+  administrateurs: AdministrateurResume[];
+}
+
+// Un enseignant dans la liste de l'administrateur d'école.
+export interface Enseignant {
+  membreId: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  actif: boolean; // faux : l'administrateur a retiré son accès
+  dejaConnecte: boolean; // vrai : il s'est déjà connecté une fois avec Google
+  ajouteLe: string;
+}

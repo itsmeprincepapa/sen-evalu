@@ -8,6 +8,8 @@ import { PassageModule } from './passage/passage.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { EtablissementsModule } from './etablissements/etablissements.module';
+import { EnseignantsModule } from './enseignants/enseignants.module';
+import { ClassesModule } from './classes/classes.module';
 
 @Module({
   imports: [
@@ -48,6 +50,12 @@ import { EtablissementsModule } from './etablissements/etablissements.module';
 
         // La gestion des établissements (super-administrateur) et le contexte d'établissement
     EtablissementsModule,
+
+        // La gestion des enseignants par l'administrateur d'école
+    EnseignantsModule,
+
+        // Les classes d'une école et leurs étudiants
+    ClassesModule,
     
         // Le passage d'une évaluation par un étudiant
     PassageModule,
