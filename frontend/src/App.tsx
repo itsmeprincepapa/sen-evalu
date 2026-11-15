@@ -8,7 +8,8 @@ import { FournisseurSession } from './session/SessionContext';
 import { PageEnseignants } from './pages/ecole/PageEnseignants';
 import { PageClasse } from './pages/ecole/PageClasse';
 import { PageClasses } from './pages/ecole/PageClasses';
-
+import { PageEvaluations } from './pages/ecole/PageEvaluations';
+import { PageInscriptions } from './pages/ecole/PageInscriptions';
 // Le plan des adresses de l'application.
 export default function App() {
   return (
@@ -55,6 +56,25 @@ export default function App() {
               element={
                 <RouteProtegee role={['admin', 'enseignant']}>
                   <PageClasse />
+                </RouteProtegee>
+              }
+            
+            />
+
+                        {/* Les évaluations de l'enseignant et la validation des inscriptions */}
+            <Route
+              path="/ecole/evaluations"
+              element={
+                <RouteProtegee role="enseignant">
+                  <PageEvaluations />
+                </RouteProtegee>
+              }
+            />
+            <Route
+              path="/ecole/evaluations/:id/inscriptions"
+              element={
+                <RouteProtegee role="enseignant">
+                  <PageInscriptions />
                 </RouteProtegee>
               }
             />

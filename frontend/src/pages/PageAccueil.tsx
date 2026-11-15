@@ -47,12 +47,17 @@ export function PageAccueil() {
               </Link>
             )}
           </div>
+                      {/* Les évaluations : enseignants seulement */}
+            {etablissementActif.role === 'enseignant' && (
+              <Link
+                to="/ecole/evaluations"
+                className="rounded border border-blue-600 px-4 py-2 text-blue-700 hover:bg-blue-50"
+              >
+                Mes évaluations
+              </Link>
+            )}
 
-          {etablissementActif.role === 'enseignant' && (
-            <p className="mt-4 text-sm text-slate-500">
-              Vos évaluations arrivent prochainement.
-            </p>
-          )}
+          
         </section>
       ) : (
         <p className="mb-6 rounded bg-orange-50 p-4 text-orange-800">

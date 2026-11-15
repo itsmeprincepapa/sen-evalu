@@ -193,3 +193,31 @@ export interface ReponseStatut {
   nom?: string; // présents seulement pour un étudiant validé
   prenom?: string;
 }
+
+// --- Évaluations de l'enseignant et validation des inscriptions (étape 5) ---
+
+// Les états d'une participation, tels que le serveur les renvoie.
+export type StatutParticipation = Exclude<StatutInscription, 'inconnu'>;
+
+// Une évaluation dans la liste de l'enseignant.
+export interface EvaluationEnseignant {
+  id: string;
+  titre: string;
+  statut: string; // brouillon, planifiee, en_cours, terminee, corrigee, publiee
+  debut: string;
+  fin: string;
+  lien: string;
+  inscriptionsOuvertes: boolean;
+  comptes: Record<string, number>; // nombre de demandes par état, ex. { en_attente: 3 }
+}
+
+// Une demande d'inscription dans la liste de validation.
+export interface InscriptionLigne {
+  id: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  statut: StatutParticipation;
+  classe: { id: string; nom: string } | null;
+  demandeLe: string;
+}
