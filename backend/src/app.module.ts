@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module';
 import { EtablissementsModule } from './etablissements/etablissements.module';
 import { EnseignantsModule } from './enseignants/enseignants.module';
 import { ClassesModule } from './classes/classes.module';
+import { InscriptionModule } from './inscription/inscription.module';
 
 @Module({
   imports: [
@@ -56,6 +57,9 @@ import { ClassesModule } from './classes/classes.module';
 
         // Les classes d'une école et leurs étudiants
     ClassesModule,
+
+        // L'inscription des étudiants par le lien (routes publiques)
+    InscriptionModule,
     
         // Le passage d'une évaluation par un étudiant
     PassageModule,

@@ -14,6 +14,7 @@ import {
   StatutParticipation,
   TypeQuestion,
 } from './enums';
+import { Classe } from './entities/classe.entity';
 
 // Script de DONNÉES DE TEST pour le développement (« npm run seed »).
 // Il crée une évaluation prête à être passée par deux étudiants fictifs.
@@ -36,6 +37,7 @@ async function main() {
     const repoQuestion = dataSource.getRepository(Question);
     const repoEtudiant = dataSource.getRepository(Etudiant);
     const repoParticipation = dataSource.getRepository(Participation);
+    const repoClasse = dataSource.getRepository(Classe);
 
     // 1. L'établissement de test (créé une seule fois, retrouvé ensuite).
     let etab = await repoEtab.findOneBy({ nom: 'École de test' });
@@ -81,6 +83,21 @@ async function main() {
       throw new Error('La durée et la plage doivent être des nombres positifs.');
     }
 
+        // 3 bis. Une classe de test, proposée aux étudiants lors de leur inscription.
+    let classe = await repoClasse.findOneBy({
+      etablissementId: etab.id,
+      nom: 'Classe de test',
+    });
+    if (!classe) {
+      classe = await repoClasse.save(
+        repoClasse.create({ etablissementId: etab.id, nom: 'Classe de test' }),
+      );
+    }
+
+    // Option : « npm run seed -- 10 360 vide » crée l'évaluation SANS étudiants déjà validés,
+    // pour tester l'inscription depuis le début.
+    const sansEtudiants = process.argv[4] === 'vide';
+
     // 4. L'évaluation de test.
     // La plage horaire est large (de il y a 1 h à dans 6 h) pour laisser du temps aux essais.
     // La durée est courte (10 minutes) pour voir le chronomètre descendre vite.
@@ -96,6 +113,9 @@ async function main() {
            dureeMinutes,
         statut: StatutEvaluation.PLANIFIEE,
         lien,
+                // Les inscriptions sont ouvertes, et la classe de test est proposée aux étudiants.
+        inscriptionsOuvertes: true,
+        classes: [classe],
         // Les codes de test : accès « 1234 », sortie « 9999 » (stockés hachés).
         codeAccesHash: await hasherCode('1234'),
         codeSortieHash: await hasherCode('9999'),
@@ -155,7 +175,7 @@ async function main() {
       { nom: 'Diop', prenom: 'Awa', email: 'awa@test.com' },
       { nom: 'Fall', prenom: 'Cheikh', email: 'cheikh@test.com' },
     ];
-    for (const e of etudiantsTest) {
+        for (const e of sansEtudiants ? [] : etudiantsTest) {
       // La fiche Etudiant de l'école (créée une seule fois).
       let etudiant = await repoEtudiant.findOneBy({
         etablissementId: etab.id,
@@ -183,6 +203,7 @@ async function main() {
     console.log('Code d’accès : 1234   |   Code de sortie : 9999');
         console.log(`Durée : ${dureeMinutes} min | plage horaire : ${plageMinutes} min à partir de maintenant`);
     console.log('Étudiants validés : awa@test.com, cheikh@test.com');
+        console.log('Inscriptions ouvertes, classe proposée : Classe de test');
   } finally {
     // Quoi qu'il arrive, on referme la connexion à la base.
     await dataSource.destroy();

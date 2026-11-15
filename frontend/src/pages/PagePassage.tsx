@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { ErreurApi, ErreurReseau, lireEtat } from '../api/passage';
 import { EcranFin } from '../components/EcranFin';
 import { Epreuve } from '../components/Epreuve';
-import { FormulaireEntree } from '../components/FormulaireEntree';
-import type { MotifFin } from '../hooks/useSauvegardeAuto';
+import { EcranEntree } from '../components/EcranEntree';
 import { effacerCopie, lireCopie, type CopieLocale } from '../lib/copieLocale';
 import type { Entree } from '../types';
 
+type MotifFin = 'temps' | 'termine' | 'session';
 // La page est toujours dans UNE de ces quatre « phases ».
 type Phase =
   | { nom: 'chargement' }
@@ -17,7 +17,8 @@ type Phase =
       cleCopie: string;
       copieInitiale: CopieLocale;
     }
-  | { nom: 'fin'; motif: MotifFin };
+  | { nom: 'fin'; 
+    motif: MotifFin };
 
 // --- La session de cet onglet (sessionStorage) ---
 // Elle garde le jeton : au rechargement de la page (F5), on reprend sans retaper le code.
@@ -166,7 +167,7 @@ export function PagePassage() {
 
   if (phase.nom === 'entree') {
     return (
-      <FormulaireEntree
+      <EcranEntree
         lien={lien}
         onEntree={(entree, email) => {
           ecrireSession({ lien, email, jeton: entree.jeton });

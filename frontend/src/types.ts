@@ -162,3 +162,34 @@ export interface ResumeImport {
   dejaDansLaClasse: number; // rien à faire
   erreurs: LigneErreurImport[];
 }
+
+// --- Inscription des étudiants par le lien (étape 5) ---
+
+export interface ClassePublique {
+  id: string;
+  nom: string;
+}
+
+// Ce que l'étudiant voit en ouvrant le lien.
+export interface InfosInscription {
+  titre: string;
+  inscriptionsOuvertes: boolean;
+  classes: ClassePublique[];
+}
+
+// Où en est une adresse e-mail pour cette évaluation.
+export type StatutInscription =
+  | 'inconnu' // aucune demande pour cette adresse
+  | 'en_attente'
+  | 'refuse'
+  | 'valide'
+  | 'en_cours'
+  | 'exclu'
+  | 'termine';
+
+export interface ReponseStatut {
+  statut: StatutInscription;
+  inscriptionsOuvertes?: boolean; // présent quand le statut est « inconnu »
+  nom?: string; // présents seulement pour un étudiant validé
+  prenom?: string;
+}
