@@ -1,4 +1,9 @@
+import { lazy, Suspense } from 'react';
 import type { Contenu, Question } from '../types';
+
+// L'éditeur Monaco est lourd : on ne le télécharge QUE lorsqu'une question de code
+// s'affiche. Les autres questions ne le chargent jamais.
+const EditeurCode = lazy(() => import('./EditeurCode'));
 
 interface Props {
   question: Question;
@@ -65,27 +70,39 @@ export function ChampReponse({ question, contenu, onChange }: Props) {
     );
   }
 
-  // Question ouverte (rédaction) ou question de code : une grande zone de texte.
-  // (L'éditeur de code complet, Monaco, sera ajouté à l'étape 6.)
-  const estCode = question.type === 'code';
-  return (
-    <div>
-      {estCode && (
+  // Question de code : l'éditeur Monaco, dans le langage choisi par l'enseignant.
+  if (question.type === 'code') {
+    return (
+      <div>
         <p className="mb-2 text-sm text-slate-600">
           Langage : <strong>{question.langage}</strong>. Votre programme ne sera
           pas exécuté : écrivez-le soigneusement.
         </p>
-      )}
-      <textarea
-        value={texte}
-        onChange={(e) => onChange(e.target.value)}
-        rows={estCode ? 12 : 8}
-        spellCheck={!estCode}
-        autoComplete="off"
-        className={`w-full rounded border border-slate-300 p-3 ${
-          estCode ? 'font-mono text-sm' : ''
-        }`}
-      />
-    </div>
+        {/* Suspense affiche un message pendant le téléchargement de l'éditeur. */}
+        <Suspense
+          fallback={
+            <p className="p-3 text-sm text-slate-500">Chargement de l'éditeur…</p>
+          }
+        >
+          <EditeurCode
+            key={question.id} // un éditeur neuf pour chaque question
+            valeur={texte}
+            langage={question.langage ?? 'plaintext'}
+            onChange={onChange}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
+  // Question ouverte (rédaction) : une grande zone de texte.
+  return (
+    <textarea
+      value={texte}
+      onChange={(e) => onChange(e.target.value)}
+      rows={8}
+      autoComplete="off"
+      className="w-full rounded border border-slate-300 p-3"
+    />
   );
 }

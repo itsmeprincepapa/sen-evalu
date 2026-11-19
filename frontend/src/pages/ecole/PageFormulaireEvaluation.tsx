@@ -654,12 +654,17 @@ function ContenuFormulaire({ idEtablissement, idEvaluation }: Props) {
                 </div>
               </Carte>
 
-              <Carte>
+                       <Carte className="space-y-3">
                 <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
-                <p className="mt-1 text-sm text-slate-600">
-                  {detail.nombreQuestions} question{detail.nombreQuestions > 1 ? "s" : ""}.{" "}
-                  (L’écran pour les écrire arrive à l’étape suivante.)
+                <p className="text-sm text-slate-600">
+                  {detail.nombreQuestions} question{detail.nombreQuestions > 1 ? "s" : ""}.
                 </p>
+                <Link
+                  to={`/ecole/evaluations/${detail.id}/questions`}
+                  className="inline-block rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  {detail.modifiable ? "Gérer les questions" : "Voir les questions"}
+                </Link>
               </Carte>
             </>
           )}

@@ -265,3 +265,30 @@ export interface ModificationEvaluation extends Partial<OptionsEvaluation> {
   inscriptionsOuvertes?: boolean;
   inscriptionsFermeLe?: string | null; // null = pas de date de fermeture
 }
+
+// --- Questions de l'enseignant (étape 6E) ---
+
+// Une proposition de QCM vue par l'ENSEIGNANT : elle contient la bonne réponse.
+export interface OptionQcmEnseignant extends OptionQcm {
+  correcte: boolean;
+}
+
+// Une question vue par l'enseignant (jamais envoyée telle quelle à l'étudiant).
+export interface QuestionEnseignant extends Omit<Question, 'options'> {
+  options: OptionQcmEnseignant[] | null;
+}
+
+// Réponse de « GET .../questions » : les questions dans l'ordre et le total des points.
+export interface ListeQuestions {
+  totalPoints: number;
+  questions: QuestionEnseignant[];
+}
+
+// Ce qu'on envoie pour créer ou modifier une question.
+export interface DonneesQuestion {
+  type: TypeQuestion;
+  enonce: string;
+  points: number;
+  langage: string | null; // seulement pour une question de code
+  options: { texte: string; correcte: boolean }[] | null; // seulement pour un QCM
+}
