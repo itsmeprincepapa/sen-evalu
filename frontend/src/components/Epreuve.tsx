@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { useSauvegardeAuto, type MotifFin } from '../hooks/useSauvegardeAuto';
-import type { CopieLocale } from '../lib/copieLocale';
-import type { Contenu, Entree } from '../types';
-import { ChampReponse } from './ChampReponse';
+import { useState } from "react";
+import { useSauvegardeAuto, type MotifFin } from "../hooks/useSauvegardeAuto";
+import type { CopieLocale } from "../lib/copieLocale";
+import type { Contenu, Entree } from "../types";
+import { ChampReponse } from "./ChampReponse";
 
 interface Props {
   entree: Entree;
@@ -15,13 +15,13 @@ interface Props {
 function formaterTemps(secondes: number): string {
   const minutes = Math.floor(secondes / 60);
   const reste = secondes % 60;
-  return `${String(minutes).padStart(2, '0')}:${String(reste).padStart(2, '0')}`;
+  return `${String(minutes).padStart(2, "0")}:${String(reste).padStart(2, "0")}`;
 }
 
 // Une question est « répondue » si elle contient quelque chose.
 function estRepondue(contenu: Contenu | undefined): boolean {
   if (contenu === undefined) return false;
-  return Array.isArray(contenu) ? contenu.length > 0 : contenu.trim() !== '';
+  return Array.isArray(contenu) ? contenu.length > 0 : contenu.trim() !== "";
 }
 
 // L'écran de l'évaluation : en-tête (nom, minuteur, état), question, navigation.
@@ -62,7 +62,7 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
   async function terminer() {
     if (
       !window.confirm(
-        'Voulez-vous vraiment terminer ? Vous ne pourrez plus modifier vos réponses.',
+        "Voulez-vous vraiment terminer ? Vous ne pourrez plus modifier vos réponses.",
       )
     ) {
       return;
@@ -73,7 +73,9 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
       await terminerMaintenant(); // en cas de succès, la page passe à l'écran de fin
     } catch (e) {
       setMessage(
-        e instanceof Error ? e.message : 'Impossible de terminer pour le moment.',
+        e instanceof Error
+          ? e.message
+          : "Impossible de terminer pour le moment.",
       );
       setTerminaison(false);
     }
@@ -81,17 +83,17 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
 
   // Indicateur d'état de la sauvegarde (en haut de l'écran).
   let etat: { texte: string; classes: string };
-  if (reseau === 'hors-ligne') {
+  if (reseau === "hors-ligne") {
     etat = {
-      texte: 'Hors ligne : vos réponses sont gardées sur cet ordinateur',
-      classes: 'bg-orange-100 text-orange-800',
+      texte: "Hors ligne : vos réponses sont gardées sur cet ordinateur",
+      classes: "bg-orange-100 text-orange-800",
     };
   } else if (nbNonEnvoyees > 0) {
-    etat = { texte: 'Envoi en cours…', classes: 'bg-slate-100 text-slate-700' };
+    etat = { texte: "Envoi en cours…", classes: "bg-slate-100 text-slate-700" };
   } else {
     etat = {
-      texte: 'Tout est enregistré',
-      classes: 'bg-green-100 text-green-800',
+      texte: "Tout est enregistré",
+      classes: "bg-green-100 text-green-800",
     };
   }
 
@@ -111,7 +113,7 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
         </div>
         <div className="text-right">
           <div
-            className={`font-mono text-2xl ${secondes <= 60 ? 'text-red-600' : ''}`}
+            className={`font-mono text-2xl ${secondes <= 60 ? "text-red-600" : ""}`}
           >
             {formaterTemps(secondes)}
           </div>
@@ -131,10 +133,10 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
             onClick={() => setIndex(i)}
             className={`h-10 w-10 rounded border font-medium disabled:opacity-40 ${
               i === index
-                ? 'border-blue-600 bg-blue-600 text-white'
+                ? "border-marque-600 bg-marque-600 text-white"
                 : estRepondue(brouillons[q.id]?.contenu)
-                  ? 'border-green-600 bg-green-50 text-green-800'
-                  : 'border-slate-300 bg-white'
+                  ? "border-green-600 bg-green-50 text-green-800"
+                  : "border-slate-300 bg-white"
             }`}
           >
             {i + 1}
@@ -145,8 +147,8 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
       {/* La question affichée */}
       <section className="rounded-lg bg-white p-6 shadow">
         <p className="mb-1 text-sm text-slate-500">
-          Question {index + 1} sur {questions.length} ({question.points}{' '}
-          {question.points > 1 ? 'points' : 'point'})
+          Question {index + 1} sur {questions.length} ({question.points}{" "}
+          {question.points > 1 ? "points" : "point"})
         </p>
         <p className="mb-4 whitespace-pre-wrap text-lg">{question.enonce}</p>
 
@@ -159,7 +161,10 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
       </section>
 
       {message && (
-        <p role="alert" className="mt-4 rounded bg-red-50 p-3 text-sm text-red-700">
+        <p
+          role="alert"
+          className="mt-4 rounded bg-red-50 p-3 text-sm text-red-700"
+        >
           {message}
         </p>
       )}
@@ -179,7 +184,7 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
           <button
             type="button"
             onClick={() => setIndex(index + 1)}
-            className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            className="rounded bg-marque-600 px-4 py-2 text-white hover:bg-marque-700"
           >
             Suivant
           </button>
@@ -190,7 +195,7 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
             onClick={() => void terminer()}
             className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
           >
-            {terminaison ? 'Envoi…' : 'Terminer l’évaluation'}
+            {terminaison ? "Envoi…" : "Terminer l’évaluation"}
           </button>
         )}
       </footer>

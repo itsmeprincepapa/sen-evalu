@@ -80,8 +80,11 @@ export class PassageService {
     if (!participation) throw this.refus('e-mail absent de la liste');
 
     // 4. Le code d'accès est-il le bon ?
-    const codeBon = await verifierCode(dto.codeAcces, evaluation.codeAccesHash);
-    if (!codeBon) throw this.refus('code d’accès faux');
+    // Les codes sont enregistrés en majuscules : on normalise la saisie de la même façon.
+    const codeBon = await verifierCode(
+      dto.codeAcces.trim().toUpperCase(),
+      evaluation.codeAccesHash,
+    );    if (!codeBon) throw this.refus('code d’accès faux');
 
     // 5. Que faire selon la situation de l'étudiant ?
     if (participation.statut === StatutParticipation.VALIDE) {

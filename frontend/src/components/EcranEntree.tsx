@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { lireInfos, lireStatut, sinscrire } from '../api/inscription';
-import { ErreurApi, ErreurReseau } from '../api/http';
-import { entrer } from '../api/passage';
-import type { Entree, InfosInscription, ReponseStatut } from '../types';
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { lireInfos, lireStatut, sinscrire } from "../api/inscription";
+import { ErreurApi, ErreurReseau } from "../api/http";
+import { entrer } from "../api/passage";
+import type { Entree, InfosInscription, ReponseStatut } from "../types";
 
 interface Props {
   lien: string; // le lien aléatoire lu dans l'adresse de la page
@@ -11,40 +11,40 @@ interface Props {
 
 // Les étapes que peut traverser l'étudiant. « etape » est le nom de l'écran affiché.
 type Etape =
-  | { etape: 'chargement' }
-  | { etape: 'email' } // il tape son e-mail
-  | { etape: 'inscription' } // il n'a pas de demande : formulaire d'inscription
-  | { etape: 'attente' } // sa demande attend la validation de l'enseignant
-  | { etape: 'code'; prenom: string; nom: string } // validé : il saisit le code d'accès
-  | { etape: 'message'; texte: string }; // situation sans suite (refusé, terminé...)
+  | { etape: "chargement" }
+  | { etape: "email" } // il tape son e-mail
+  | { etape: "inscription" } // il n'a pas de demande : formulaire d'inscription
+  | { etape: "attente" } // sa demande attend la validation de l'enseignant
+  | { etape: "code"; prenom: string; nom: string } // validé : il saisit le code d'accès
+  | { etape: "message"; texte: string }; // situation sans suite (refusé, terminé...)
 
 // Transforme une erreur en phrase lisible pour l'étudiant.
 function messageErreur(e: unknown): string {
   if (e instanceof ErreurReseau) {
-    return 'Impossible de joindre le serveur. Vérifiez votre connexion.';
+    return "Impossible de joindre le serveur. Vérifiez votre connexion.";
   }
   if (e instanceof ErreurApi) return e.message;
-  return 'Une erreur inattendue est survenue.';
+  return "Une erreur inattendue est survenue.";
 }
 
-const CHAMP = 'mt-1 w-full rounded border border-slate-300 p-2';
+const CHAMP = "mt-1 w-full rounded border border-slate-300 p-2";
 const BOUTON =
-  'w-full rounded bg-blue-600 p-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50';
+  "w-full rounded bg-marque-600 p-2 font-medium text-white hover:bg-marque-700 disabled:opacity-50";
 
 // L'écran d'entrée de l'étudiant : il s'adapte à sa situation (pas inscrit, en attente, validé...).
 export function EcranEntree({ lien, onEntree }: Props) {
   const [infos, setInfos] = useState<InfosInscription | null>(null);
-  const [etape, setEtape] = useState<Etape>({ etape: 'chargement' });
+  const [etape, setEtape] = useState<Etape>({ etape: "chargement" });
   const [erreur, setErreur] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
 
   // Champs des formulaires
-  const [email, setEmail] = useState('');
-  const [email2, setEmail2] = useState('');
-  const [prenom, setPrenom] = useState('');
-  const [nom, setNom] = useState('');
-  const [classeId, setClasseId] = useState('');
-  const [code, setCode] = useState('');
+  const [email, setEmail] = useState("");
+  const [email2, setEmail2] = useState("");
+  const [prenom, setPrenom] = useState("");
+  const [nom, setNom] = useState("");
+  const [classeId, setClasseId] = useState("");
+  const [code, setCode] = useState("");
 
   // Au départ : le titre de l'évaluation, les classes, et si les inscriptions sont ouvertes.
   useEffect(() => {
@@ -53,15 +53,15 @@ export function EcranEntree({ lien, onEntree }: Props) {
       .then((i) => {
         if (annule) return;
         setInfos(i);
-        setEtape({ etape: 'email' });
+        setEtape({ etape: "email" });
       })
       .catch((e: unknown) => {
         if (annule) return;
         setEtape({
-          etape: 'message',
+          etape: "message",
           texte:
             e instanceof ErreurApi && e.statut === 404
-              ? 'Ce lien n’est pas valide. Vérifiez l’adresse donnée par votre enseignant.'
+              ? "Ce lien n’est pas valide. Vérifiez l’adresse donnée par votre enseignant."
               : messageErreur(e),
         });
       });
@@ -74,41 +74,42 @@ export function EcranEntree({ lien, onEntree }: Props) {
   const appliquerStatut = useCallback(
     (r: ReponseStatut) => {
       switch (r.statut) {
-        case 'valide':
-        case 'en_cours':
-          setEtape({ etape: 'code', prenom: r.prenom ?? '', nom: r.nom ?? '' });
+        case "valide":
+        case "en_cours":
+          setEtape({ etape: "code", prenom: r.prenom ?? "", nom: r.nom ?? "" });
           break;
-        case 'en_attente':
-          setEtape({ etape: 'attente' });
+        case "en_attente":
+          setEtape({ etape: "attente" });
           break;
-        case 'refuse':
+        case "refuse":
           setEtape({
-            etape: 'message',
-            texte: 'Votre demande n’a pas été acceptée. Contactez votre enseignant.',
-          });
-          break;
-        case 'exclu':
-          setEtape({
-            etape: 'message',
+            etape: "message",
             texte:
-              'Vous avez été exclu de cette évaluation. Seul votre enseignant peut vous y réintégrer.',
+              "Votre demande n’a pas été acceptée. Contactez votre enseignant.",
           });
           break;
-        case 'termine':
+        case "exclu":
           setEtape({
-            etape: 'message',
-            texte: 'Votre participation à cette évaluation est terminée.',
+            etape: "message",
+            texte:
+              "Vous avez été exclu de cette évaluation. Seul votre enseignant peut vous y réintégrer.",
           });
           break;
-        case 'inconnu':
+        case "termine":
+          setEtape({
+            etape: "message",
+            texte: "Votre participation à cette évaluation est terminée.",
+          });
+          break;
+        case "inconnu":
           if (r.inscriptionsOuvertes ?? infos?.inscriptionsOuvertes) {
-            setEtape({ etape: 'inscription' });
-            setEmail2('');
+            setEtape({ etape: "inscription" });
+            setEmail2("");
           } else {
             setEtape({
-              etape: 'message',
+              etape: "message",
               texte:
-                'Cette adresse n’est pas inscrite et les inscriptions sont fermées. Contactez votre enseignant.',
+                "Cette adresse n’est pas inscrite et les inscriptions sont fermées. Contactez votre enseignant.",
             });
           }
           break;
@@ -120,11 +121,11 @@ export function EcranEntree({ lien, onEntree }: Props) {
   // Pendant l'attente de la validation : on redemande le statut toutes les 15 secondes,
   // pour que l'écran change tout seul dès que l'enseignant a validé.
   useEffect(() => {
-    if (etape.etape !== 'attente') return;
+    if (etape.etape !== "attente") return;
     const id = setInterval(() => {
       lireStatut(lien, email.trim())
         .then((r) => {
-          if (r.statut !== 'en_attente') appliquerStatut(r);
+          if (r.statut !== "en_attente") appliquerStatut(r);
         })
         .catch(() => {
           // Coupure passagère : on réessaiera au prochain tour.
@@ -154,7 +155,7 @@ export function EcranEntree({ lien, onEntree }: Props) {
 
     // L'adresse est saisie DEUX fois : une faute de frappe empêcherait de recevoir la note.
     if (email.trim().toLowerCase() !== email2.trim().toLowerCase()) {
-      setErreur('Les deux adresses e-mail ne sont pas identiques.');
+      setErreur("Les deux adresses e-mail ne sont pas identiques.");
       return;
     }
 
@@ -166,7 +167,7 @@ export function EcranEntree({ lien, onEntree }: Props) {
         email: email.trim(),
         classeId,
       });
-      setEtape({ etape: 'attente' });
+      setEtape({ etape: "attente" });
     } catch (e) {
       if (e instanceof ErreurApi && e.statut === 409) {
         // Une demande existe déjà avec cette adresse : on affiche où elle en est.
@@ -200,13 +201,15 @@ export function EcranEntree({ lien, onEntree }: Props) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6">
       <div className="space-y-4 rounded-lg bg-white p-6 shadow">
-        <h1 className="text-2xl font-bold">{infos?.titre ?? 'sen-evalu'}</h1>
+        <h1 className="text-2xl font-bold">{infos?.titre ?? "sen-evalu"}</h1>
 
         {/* Chargement */}
-        {etape.etape === 'chargement' && <p className="text-slate-600">Chargement…</p>}
+        {etape.etape === "chargement" && (
+          <p className="text-slate-600">Chargement…</p>
+        )}
 
         {/* Étape 1 : l'e-mail */}
-        {etape.etape === 'email' && (
+        {etape.etape === "email" && (
           <form onSubmit={verifierEmail} className="space-y-4">
             <p className="text-slate-600">
               Entrez votre adresse e-mail pour commencer ou reprendre.
@@ -223,17 +226,17 @@ export function EcranEntree({ lien, onEntree }: Props) {
               />
             </label>
             <button type="submit" disabled={occupe} className={BOUTON}>
-              {occupe ? 'Vérification…' : 'Continuer'}
+              {occupe ? "Vérification…" : "Continuer"}
             </button>
           </form>
         )}
 
         {/* Étape 2a : le formulaire d'inscription */}
-        {etape.etape === 'inscription' && (
+        {etape.etape === "inscription" && (
           <form onSubmit={envoyerInscription} className="space-y-3">
             <p className="text-slate-600">
-              Cette adresse n’est pas encore inscrite. Remplissez le formulaire : votre
-              enseignant validera votre demande.
+              Cette adresse n’est pas encore inscrite. Remplissez le formulaire
+              : votre enseignant validera votre demande.
             </p>
             <div className="flex gap-3">
               <label className="block flex-1">
@@ -266,7 +269,9 @@ export function EcranEntree({ lien, onEntree }: Props) {
               />
             </label>
             <label className="block">
-              <span className="text-sm font-medium">Confirmez l’adresse e-mail</span>
+              <span className="text-sm font-medium">
+                Confirmez l’adresse e-mail
+              </span>
               <input
                 type="email"
                 required
@@ -293,20 +298,21 @@ export function EcranEntree({ lien, onEntree }: Props) {
               </select>
             </label>
             <p className="text-xs text-slate-500">
-              Votre note sera envoyée à cette adresse : vérifiez qu’elle est exacte.
+              Votre note sera envoyée à cette adresse : vérifiez qu’elle est
+              exacte.
             </p>
             <button type="submit" disabled={occupe} className={BOUTON}>
-              {occupe ? 'Envoi…' : 'Envoyer ma demande'}
+              {occupe ? "Envoi…" : "Envoyer ma demande"}
             </button>
           </form>
         )}
 
         {/* Étape 2b : en attente de la validation */}
-        {etape.etape === 'attente' && (
+        {etape.etape === "attente" && (
           <div className="space-y-3">
-            <p className="rounded bg-blue-50 p-3 text-blue-900">
-              Demande envoyée. Attendez la validation de votre enseignant : cet écran
-              se met à jour tout seul.
+            <p className="rounded bg-marque-50 p-3 text-marque-900">
+              Demande envoyée. Attendez la validation de votre enseignant : cet
+              écran se met à jour tout seul.
             </p>
             <button
               type="button"
@@ -326,10 +332,14 @@ export function EcranEntree({ lien, onEntree }: Props) {
         )}
 
         {/* Étape 3 : validé, il saisit le code d'accès */}
-        {etape.etape === 'code' && (
+        {etape.etape === "code" && (
           <form onSubmit={soumettreCode} className="space-y-4">
             <p className="text-lg">
-              Bonjour <strong>{etape.prenom} {etape.nom}</strong>.
+              Bonjour{" "}
+              <strong>
+                {etape.prenom} {etape.nom}
+              </strong>
+              .
             </p>
             <label className="block">
               <span className="text-sm font-medium">Code d’accès</span>
@@ -342,18 +352,23 @@ export function EcranEntree({ lien, onEntree }: Props) {
               />
             </label>
             <button type="submit" disabled={occupe} className={BOUTON}>
-              {occupe ? 'Vérification…' : 'Commencer l’évaluation'}
+              {occupe ? "Vérification…" : "Commencer l’évaluation"}
             </button>
           </form>
         )}
 
         {/* Les situations sans suite */}
-        {etape.etape === 'message' && (
-          <p className="rounded bg-orange-50 p-3 text-orange-900">{etape.texte}</p>
+        {etape.etape === "message" && (
+          <p className="rounded bg-orange-50 p-3 text-orange-900">
+            {etape.texte}
+          </p>
         )}
 
         {erreur && (
-          <p role="alert" className="rounded bg-red-50 p-3 text-sm text-red-700">
+          <p
+            role="alert"
+            className="rounded bg-red-50 p-3 text-sm text-red-700"
+          >
             {erreur}
           </p>
         )}

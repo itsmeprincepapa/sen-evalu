@@ -1,17 +1,17 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Link, useParams } from "react-router";
 import {
   corrigerInscription,
   listerInscriptions,
   listerMesEvaluations,
   refuserInscriptions,
   validerInscriptions,
-} from '../../api/evaluations';
-import { EnteteSession } from '../../components/EnteteSession';
-import { useErreurs } from '../../hooks/useErreurs';
-import { LIBELLES_STATUT_PARTICIPATION } from '../../lib/libelles';
-import { useSession } from '../../session/SessionContext';
-import type { InscriptionLigne } from '../../types';
+} from "../../api/evaluations";
+import { EnteteSession } from "../../components/EnteteSession";
+import { useErreurs } from "../../hooks/useErreurs";
+import { LIBELLES_STATUT_PARTICIPATION } from "../../lib/libelles";
+import { useSession } from "../../session/SessionContext";
+import type { InscriptionLigne } from "../../types";
 
 interface Props {
   idEtablissement: string;
@@ -21,7 +21,7 @@ interface Props {
 // Le contenu de la page, pour UNE évaluation d'UN établissement.
 function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
   const { jeton } = useSession();
-  const jetonSession = jeton ?? '';
+  const jetonSession = jeton ?? "";
   const { erreur, setErreur, traiter } = useErreurs();
 
   const [titre, setTitre] = useState<string | null>(null);
@@ -33,9 +33,9 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
 
   // La demande en cours de correction (une seule à la fois) et ses champs
   const [enEdition, setEnEdition] = useState<string | null>(null);
-  const [editEmail, setEditEmail] = useState('');
-  const [editNom, setEditNom] = useState('');
-  const [editPrenom, setEditPrenom] = useState('');
+  const [editEmail, setEditEmail] = useState("");
+  const [editNom, setEditNom] = useState("");
+  const [editPrenom, setEditPrenom] = useState("");
 
   // « Compteur de rechargement » : on l'augmente pour demander un nouveau chargement.
   const [rechargement, setRechargement] = useState(0);
@@ -85,7 +85,9 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
 
   function basculerSelection(id: string) {
     setSelection((actuelle) =>
-      actuelle.includes(id) ? actuelle.filter((x) => x !== id) : [...actuelle, id],
+      actuelle.includes(id)
+        ? actuelle.filter((x) => x !== id)
+        : [...actuelle, id],
     );
   }
 
@@ -98,23 +100,35 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
       return;
     }
     await executer(
-      () => validerInscriptions(jetonSession, idEtablissement, idEvaluation, { tous: true }),
-      'Toutes les demandes en attente ont été validées.',
+      () =>
+        validerInscriptions(jetonSession, idEtablissement, idEvaluation, {
+          tous: true,
+        }),
+      "Toutes les demandes en attente ont été validées.",
     );
   }
 
   async function validerSelection(ids: string[]) {
     await executer(
-      () => validerInscriptions(jetonSession, idEtablissement, idEvaluation, { ids }),
-      ids.length > 1 ? 'Demandes validées.' : 'Demande validée.',
+      () =>
+        validerInscriptions(jetonSession, idEtablissement, idEvaluation, {
+          ids,
+        }),
+      ids.length > 1 ? "Demandes validées." : "Demande validée.",
     );
   }
 
   async function refuserSelection(ids: string[]) {
-    if (!window.confirm(`Refuser ${ids.length} demande${ids.length > 1 ? 's' : ''} ?`)) return;
+    if (
+      !window.confirm(
+        `Refuser ${ids.length} demande${ids.length > 1 ? "s" : ""} ?`,
+      )
+    )
+      return;
     await executer(
-      () => refuserInscriptions(jetonSession, idEtablissement, idEvaluation, ids),
-      ids.length > 1 ? 'Demandes refusées.' : 'Demande refusée.',
+      () =>
+        refuserInscriptions(jetonSession, idEtablissement, idEvaluation, ids),
+      ids.length > 1 ? "Demandes refusées." : "Demande refusée.",
     );
   }
 
@@ -126,7 +140,10 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
     setEditPrenom(l.prenom);
   }
 
-  async function enregistrerCorrection(evenement: FormEvent<HTMLFormElement>, id: string) {
+  async function enregistrerCorrection(
+    evenement: FormEvent<HTMLFormElement>,
+    id: string,
+  ) {
     evenement.preventDefault();
     const reussi = await executer(
       () =>
@@ -135,17 +152,21 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
           nom: editNom.trim(),
           prenom: editPrenom.trim(),
         }),
-      'Informations corrigées.',
+      "Informations corrigées.",
     );
     if (reussi) setEnEdition(null);
   }
 
   // Les demandes, rangées par état.
   const toutes = lignes ?? [];
-  const enAttente = toutes.filter((l) => l.statut === 'en_attente');
-  const validees = toutes.filter((l) => l.statut === 'valide' || l.statut === 'en_cours');
-  const refusees = toutes.filter((l) => l.statut === 'refuse');
-  const autres = toutes.filter((l) => l.statut === 'exclu' || l.statut === 'termine');
+  const enAttente = toutes.filter((l) => l.statut === "en_attente");
+  const validees = toutes.filter(
+    (l) => l.statut === "valide" || l.statut === "en_cours",
+  );
+  const refusees = toutes.filter((l) => l.statut === "refuse");
+  const autres = toutes.filter(
+    (l) => l.statut === "exclu" || l.statut === "termine",
+  );
 
   // Les demandes cochées qui sont encore en attente.
   const cochees = selection.filter((id) => enAttente.some((l) => l.id === id));
@@ -156,7 +177,7 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
 
       <Link
         to="/ecole/evaluations"
-        className="mb-4 inline-block text-sm text-blue-700 hover:underline"
+        className="mb-4 inline-block text-sm text-marque-700 hover:underline"
       >
         ← Mes évaluations
       </Link>
@@ -164,12 +185,17 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
       {titre && <h2 className="mb-4 text-xl font-bold">{titre}</h2>}
 
       {erreur && (
-        <p role="alert" className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">
+        <p
+          role="alert"
+          className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700"
+        >
           {erreur}
         </p>
       )}
       {info && (
-        <p className="mb-4 rounded bg-green-50 p-3 text-sm text-green-800">{info}</p>
+        <p className="mb-4 rounded bg-green-50 p-3 text-sm text-green-800">
+          {info}
+        </p>
       )}
 
       {lignes === null ? (
@@ -249,7 +275,7 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
                         <div className="flex gap-2">
                           <button
                             type="submit"
-                            className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
+                            className="rounded bg-marque-600 px-3 py-1 text-sm text-white hover:bg-marque-700"
                           >
                             Enregistrer
                           </button>
@@ -276,7 +302,8 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
                             {l.nom} {l.prenom}
                           </p>
                           <p className="text-sm text-slate-600">
-                            {l.email} · {l.classe?.nom ?? 'classe non renseignée'}
+                            {l.email} ·{" "}
+                            {l.classe?.nom ?? "classe non renseignée"}
                           </p>
                         </div>
                         <button
@@ -305,17 +332,22 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
           <section className="mb-6 rounded-lg bg-white p-4 shadow">
             <h3 className="mb-3 font-semibold">Validés ({validees.length})</h3>
             {validees.length === 0 ? (
-              <p className="text-sm text-slate-600">Aucun étudiant validé pour le moment.</p>
+              <p className="text-sm text-slate-600">
+                Aucun étudiant validé pour le moment.
+              </p>
             ) : (
               <ul className="divide-y divide-slate-200">
                 {validees.map((l) => (
-                  <li key={l.id} className="flex items-center justify-between py-2">
+                  <li
+                    key={l.id}
+                    className="flex items-center justify-between py-2"
+                  >
                     <div>
                       <p className="font-medium">
                         {l.nom} {l.prenom}
                       </p>
                       <p className="text-sm text-slate-600">
-                        {l.email} · {l.classe?.nom ?? 'classe non renseignée'}
+                        {l.email} · {l.classe?.nom ?? "classe non renseignée"}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -323,7 +355,7 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
                         {LIBELLES_STATUT_PARTICIPATION[l.statut]}
                       </span>
                       {/* On ne refuse que celui qui n'est pas encore entré */}
-                      {l.statut === 'valide' && (
+                      {l.statut === "valide" && (
                         <button
                           type="button"
                           onClick={() => void refuserSelection([l.id])}
@@ -342,10 +374,15 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
           {/* Les demandes refusées : on peut changer d'avis */}
           {refusees.length > 0 && (
             <section className="mb-6 rounded-lg bg-white p-4 shadow">
-              <h3 className="mb-3 font-semibold">Refusées ({refusees.length})</h3>
+              <h3 className="mb-3 font-semibold">
+                Refusées ({refusees.length})
+              </h3>
               <ul className="divide-y divide-slate-200">
                 {refusees.map((l) => (
-                  <li key={l.id} className="flex items-center justify-between py-2">
+                  <li
+                    key={l.id}
+                    className="flex items-center justify-between py-2"
+                  >
                     <div>
                       <p className="font-medium">
                         {l.nom} {l.prenom}
@@ -368,13 +405,20 @@ function ContenuInscriptions({ idEtablissement, idEvaluation }: Props) {
           {/* Exclus et terminés : à titre d'information */}
           {autres.length > 0 && (
             <section className="rounded-lg bg-white p-4 shadow">
-              <h3 className="mb-3 font-semibold">Exclus ou terminés ({autres.length})</h3>
+              <h3 className="mb-3 font-semibold">
+                Exclus ou terminés ({autres.length})
+              </h3>
               <ul className="divide-y divide-slate-200">
                 {autres.map((l) => (
-                  <li key={l.id} className="flex items-center justify-between py-2">
+                  <li
+                    key={l.id}
+                    className="flex items-center justify-between py-2"
+                  >
                     <p>
-                      {l.nom} {l.prenom}{' '}
-                      <span className="text-sm text-slate-600">· {l.email}</span>
+                      {l.nom} {l.prenom}{" "}
+                      <span className="text-sm text-slate-600">
+                        · {l.email}
+                      </span>
                     </p>
                     <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">
                       {LIBELLES_STATUT_PARTICIPATION[l.statut]}

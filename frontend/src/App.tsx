@@ -10,11 +10,13 @@ import { PageClasse } from './pages/ecole/PageClasse';
 import { PageClasses } from './pages/ecole/PageClasses';
 import { PageEvaluations } from './pages/ecole/PageEvaluations';
 import { PageInscriptions } from './pages/ecole/PageInscriptions';
+import { PageDesign } from './pages/PageDesign';
+
 // Le plan des adresses de l'application.
 export default function App() {
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
-      <BrowserRouter>
+    <div className="min-h-screen">
+            <BrowserRouter>
         <FournisseurSession>
           <Routes>
             {/* Les ÉTUDIANTS : le lien donné par l'enseignant (aucune connexion Google) */}
@@ -87,6 +89,8 @@ export default function App() {
                 </RouteProtegee>
               }
             />
+            {/* Galerie de style : seulement pendant le développement */}
+            {import.meta.env.DEV && <Route path="/design" element={<PageDesign />} />}
 
             {/* Toute autre adresse renvoie à l'accueil */}
             <Route path="*" element={<Navigate to="/" replace />} />

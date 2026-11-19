@@ -1,27 +1,23 @@
-
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
-import { ErreurApi, ErreurReseau } from '../../api/http';
+import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router";
+import { ErreurApi, ErreurReseau } from "../../api/http";
 import {
   changerAccesEnseignant,
   inviterEnseignant,
   listerEnseignants,
-} from '../../api/ecole';
-import { EnteteSession } from '../../components/EnteteSession';
-import { useSession } from '../../session/SessionContext';
-import type { Enseignant } from '../../types';
+} from "../../api/ecole";
+import { EnteteSession } from "../../components/EnteteSession";
+import { useSession } from "../../session/SessionContext";
+import type { Enseignant } from "../../types";
 
 interface PropsListe {
   idEtablissement: string;
   nomEtablissement: string;
 }
 
-function ListeEnseignants({
-  idEtablissement,
-  nomEtablissement,
-}: PropsListe) {
+function ListeEnseignants({ idEtablissement, nomEtablissement }: PropsListe) {
   const { jeton, deconnecter } = useSession();
-  const jetonSession = jeton ?? '';
+  const jetonSession = jeton ?? "";
 
   const [liste, setListe] = useState<Enseignant[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -29,9 +25,9 @@ function ListeEnseignants({
   const [chargement, setChargement] = useState(false);
 
   // Formulaire d'invitation
-  const [email, setEmail] = useState('');
-  const [prenom, setPrenom] = useState('');
-  const [nom, setNom] = useState('');
+  const [email, setEmail] = useState("");
+  const [prenom, setPrenom] = useState("");
+  const [nom, setNom] = useState("");
 
   // Gestion centralisée des erreurs
   const traiterErreur = useCallback(
@@ -42,15 +38,11 @@ function ListeEnseignants({
       }
 
       if (e instanceof ErreurReseau) {
-        setErreur('Impossible de joindre le serveur.');
+        setErreur("Impossible de joindre le serveur.");
         return;
       }
 
-      setErreur(
-        e instanceof Error
-          ? e.message
-          : 'Une erreur est survenue.',
-      );
+      setErreur(e instanceof Error ? e.message : "Une erreur est survenue.");
     },
     [deconnecter],
   );
@@ -116,12 +108,12 @@ function ListeEnseignants({
         prenom: prenom.trim(),
       });
 
-      setEmail('');
-      setPrenom('');
-      setNom('');
+      setEmail("");
+      setPrenom("");
+      setNom("");
 
       setInfo(
-        'Enseignant ajouté : il pourra se connecter avec ce compte Google.',
+        "Enseignant ajouté : il pourra se connecter avec ce compte Google.",
       );
 
       await charger();
@@ -139,7 +131,7 @@ function ListeEnseignants({
       !window.confirm(
         `Retirer l’accès de ${e.prenom} ${e.nom} ?\n\n` +
           `Cette personne ne pourra plus travailler dans « ${nomEtablissement} ». ` +
-          'Ses évaluations restent conservées.',
+          "Ses évaluations restent conservées.",
       )
     ) {
       return;
@@ -168,7 +160,7 @@ function ListeEnseignants({
 
       <Link
         to="/"
-        className="mb-4 inline-block text-sm text-blue-700 hover:underline"
+        className="mb-4 inline-block text-sm text-marque-700 hover:underline"
       >
         ← Retour à l’accueil
       </Link>
@@ -225,7 +217,7 @@ function ListeEnseignants({
         <button
           type="submit"
           disabled={chargement}
-          className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded bg-marque-600 px-4 py-2 font-medium text-white hover:bg-marque-700 disabled:opacity-50"
         >
           Inviter
         </button>
@@ -239,16 +231,14 @@ function ListeEnseignants({
           Actualisation de la liste…
         </p>
       ) : liste.length === 0 ? (
-        <p className="text-slate-600">
-          Aucun enseignant pour le moment.
-        </p>
+        <p className="text-slate-600">Aucun enseignant pour le moment.</p>
       ) : (
         <ul className="space-y-3">
           {liste.map((e) => (
             <li
               key={e.membreId}
               className={`flex items-center justify-between gap-4 rounded-lg bg-white p-4 shadow ${
-                e.actif ? '' : 'opacity-60'
+                e.actif ? "" : "opacity-60"
               }`}
             >
               <div>
@@ -256,15 +246,13 @@ function ListeEnseignants({
                   {e.prenom} {e.nom}
                 </p>
 
-                <p className="text-sm text-slate-600">
-                  {e.email}
-                </p>
+                <p className="text-sm text-slate-600">{e.email}</p>
 
                 <p className="text-xs text-slate-500">
-                  {e.actif ? '' : 'Accès retiré · '}
+                  {e.actif ? "" : "Accès retiré · "}
                   {e.dejaConnecte
-                    ? 'S’est déjà connecté'
-                    : 'Ne s’est pas encore connecté'}
+                    ? "S’est déjà connecté"
+                    : "Ne s’est pas encore connecté"}
                 </p>
               </div>
 
@@ -274,11 +262,11 @@ function ListeEnseignants({
                 disabled={chargement}
                 className={`rounded border px-3 py-1 text-sm disabled:opacity-50 ${
                   e.actif
-                    ? 'border-red-300 text-red-700 hover:bg-red-50'
-                    : 'border-green-300 text-green-700 hover:bg-green-50'
+                    ? "border-red-300 text-red-700 hover:bg-red-50"
+                    : "border-green-300 text-green-700 hover:bg-green-50"
                 }`}
               >
-                {e.actif ? 'Retirer l’accès' : 'Rétablir l’accès'}
+                {e.actif ? "Retirer l’accès" : "Rétablir l’accès"}
               </button>
             </li>
           ))}

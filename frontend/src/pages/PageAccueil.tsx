@@ -1,7 +1,7 @@
-import { Link, Navigate } from 'react-router';
-import { EnteteSession } from '../components/EnteteSession';
-import { LIBELLES_ROLE } from '../lib/libelles';
-import { useSession } from '../session/SessionContext';
+import { Link, Navigate } from "react-router";
+import { EnteteSession } from "../components/EnteteSession";
+import { LIBELLES_ROLE } from "../lib/libelles";
+import { useSession } from "../session/SessionContext";
 
 // Accueil des enseignants et des administrateurs d'école.
 // Les liens affichés dépendent du rôle dans l'établissement actif.
@@ -32,38 +32,36 @@ export function PageAccueil() {
             {/* Les classes : administrateurs et enseignants */}
             <Link
               to="/ecole/classes"
-              className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+              className="rounded bg-marque-600 px-4 py-2 text-white hover:bg-marque-700"
             >
               Gérer les classes
             </Link>
 
             {/* Les enseignants : administrateurs seulement */}
-            {etablissementActif.role === 'admin' && (
+            {etablissementActif.role === "admin" && (
               <Link
                 to="/ecole/enseignants"
-                className="rounded border border-blue-600 px-4 py-2 text-blue-700 hover:bg-blue-50"
+                className="rounded border border-marque-600 px-4 py-2 text-marque-700 hover:bg-marque-50"
               >
                 Gérer les enseignants
               </Link>
             )}
           </div>
-                      {/* Les évaluations : enseignants seulement */}
-            {etablissementActif.role === 'enseignant' && (
-              <Link
-                to="/ecole/evaluations"
-                className="rounded border border-blue-600 px-4 py-2 text-blue-700 hover:bg-blue-50"
-              >
-                Mes évaluations
-              </Link>
-            )}
-
-          
+          {/* Les évaluations : enseignants seulement */}
+          {etablissementActif.role === "enseignant" && (
+            <Link
+              to="/ecole/evaluations"
+              className="rounded border border-marque-600 px-4 py-2 text-marque-700 hover:bg-marque-50"
+            >
+              Mes évaluations
+            </Link>
+          )}
         </section>
       ) : (
         <p className="mb-6 rounded bg-orange-50 p-4 text-orange-800">
           {profil.etablissements.length === 0
-            ? 'Vous n’êtes rattaché à aucun établissement pour le moment. Contactez votre administrateur.'
-            : 'Vos établissements sont désactivés pour le moment.'}
+            ? "Vous n’êtes rattaché à aucun établissement pour le moment. Contactez votre administrateur."
+            : "Vos établissements sont désactivés pour le moment."}
         </p>
       )}
 
@@ -79,16 +77,18 @@ export function PageAccueil() {
               >
                 <div>
                   <p className="font-medium">{e.nom}</p>
-                  <p className="text-sm text-slate-600">{LIBELLES_ROLE[e.role]}</p>
+                  <p className="text-sm text-slate-600">
+                    {LIBELLES_ROLE[e.role]}
+                  </p>
                 </div>
                 <span
                   className={`rounded px-2 py-1 text-xs ${
-                    e.statut === 'actif'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-slate-200 text-slate-700'
+                    e.statut === "actif"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-slate-200 text-slate-700"
                   }`}
                 >
-                  {e.statut === 'actif' ? 'Actif' : 'Inactif'}
+                  {e.statut === "actif" ? "Actif" : "Inactif"}
                 </span>
               </li>
             ))}

@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
-import { entrer, ErreurApi, ErreurReseau } from '../api/passage';
-import type { Entree } from '../types';
+import { useState, type FormEvent } from "react";
+import { entrer, ErreurApi, ErreurReseau } from "../api/passage";
+import type { Entree } from "../types";
 
 interface Props {
   lien: string; // le lien aléatoire lu dans l’adresse de la page
@@ -9,8 +9,8 @@ interface Props {
 
 // Écran d'entrée : l'étudiant tape son e-mail et le code d'accès donné par l'enseignant.
 export function FormulaireEntree({ lien, onEntree }: Props) {
-  const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
@@ -27,11 +27,13 @@ export function FormulaireEntree({ lien, onEntree }: Props) {
       onEntree(entree, adresse);
     } catch (e) {
       if (e instanceof ErreurReseau) {
-        setErreur('Impossible de joindre le serveur. Vérifiez votre connexion.');
+        setErreur(
+          "Impossible de joindre le serveur. Vérifiez votre connexion.",
+        );
       } else if (e instanceof ErreurApi) {
         setErreur(e.message); // ex. « Accès refusé... » ou « Le temps est écoulé. »
       } else {
-        setErreur('Une erreur inattendue est survenue.');
+        setErreur("Une erreur inattendue est survenue.");
       }
       setEnvoi(false);
     }
@@ -74,7 +76,10 @@ export function FormulaireEntree({ lien, onEntree }: Props) {
         </label>
 
         {erreur && (
-          <p role="alert" className="rounded bg-red-50 p-3 text-sm text-red-700">
+          <p
+            role="alert"
+            className="rounded bg-red-50 p-3 text-sm text-red-700"
+          >
             {erreur}
           </p>
         )}
@@ -82,9 +87,9 @@ export function FormulaireEntree({ lien, onEntree }: Props) {
         <button
           type="submit"
           disabled={envoi}
-          className="w-full rounded bg-blue-600 p-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="w-full rounded bg-marque-600 p-2 font-medium text-white hover:bg-marque-700 disabled:opacity-50"
         >
-          {envoi ? 'Vérification…' : 'Commencer'}
+          {envoi ? "Vérification…" : "Commencer"}
         </button>
       </form>
     </main>

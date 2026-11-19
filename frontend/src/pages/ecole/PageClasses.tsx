@@ -1,22 +1,22 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router';
-import { creerClasse, listerClasses } from '../../api/classes';
-import { EnteteSession } from '../../components/EnteteSession';
-import { useErreurs } from '../../hooks/useErreurs';
-import { useSession } from '../../session/SessionContext';
-import type { ClasseResume } from '../../types';
+import { useEffect, useState, type FormEvent } from "react";
+import { Link, useNavigate } from "react-router";
+import { creerClasse, listerClasses } from "../../api/classes";
+import { EnteteSession } from "../../components/EnteteSession";
+import { useErreurs } from "../../hooks/useErreurs";
+import { useSession } from "../../session/SessionContext";
+import type { ClasseResume } from "../../types";
 
 // Le contenu de la page, pour UN établissement donné.
 function ListeClasses({ idEtablissement }: { idEtablissement: string }) {
   const { jeton } = useSession();
-  const jetonSession = jeton ?? '';
+  const jetonSession = jeton ?? "";
   const navigate = useNavigate();
   const { erreur, setErreur, traiter } = useErreurs();
 
   const [classes, setClasses] = useState<ClasseResume[] | null>(null);
-  const [nom, setNom] = useState('');
+  const [nom, setNom] = useState("");
 
-    // Charge la liste des classes au départ. Les données arrivent dans une « promesse » :
+  // Charge la liste des classes au départ. Les données arrivent dans une « promesse » :
   // le setState est appelé quand elles sont arrivées, jamais directement dans l'effet.
   useEffect(() => {
     let annule = false; // devient vrai si on quitte la page avant la réponse
@@ -50,12 +50,18 @@ function ListeClasses({ idEtablissement }: { idEtablissement: string }) {
     <div className="mx-auto max-w-3xl p-4">
       <EnteteSession titre="Classes" />
 
-      <Link to="/" className="mb-4 inline-block text-sm text-blue-700 hover:underline">
+      <Link
+        to="/"
+        className="mb-4 inline-block text-sm text-marque-700 hover:underline"
+      >
         ← Retour à l’accueil
       </Link>
 
       {erreur && (
-        <p role="alert" className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">
+        <p
+          role="alert"
+          className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700"
+        >
           {erreur}
         </p>
       )}
@@ -77,7 +83,7 @@ function ListeClasses({ idEtablissement }: { idEtablissement: string }) {
         </label>
         <button
           type="submit"
-          className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+          className="rounded bg-marque-600 px-4 py-2 font-medium text-white hover:bg-marque-700"
         >
           Créer
         </button>
@@ -100,7 +106,7 @@ function ListeClasses({ idEtablissement }: { idEtablissement: string }) {
               >
                 <span className="font-medium">{c.nom}</span>
                 <span className="text-sm text-slate-600">
-                  {c.nbEtudiants} étudiant{c.nbEtudiants > 1 ? 's' : ''}
+                  {c.nbEtudiants} étudiant{c.nbEtudiants > 1 ? "s" : ""}
                 </span>
               </Link>
             </li>

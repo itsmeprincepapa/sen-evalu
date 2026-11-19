@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -17,6 +18,9 @@ import { Membre } from '../database/entities/membre.entity';
 import { RoleMembre } from '../database/enums';
 import { ChoixInscriptionsDto } from './dto/choix-inscriptions.dto';
 import { CorrigerInscriptionDto } from './dto/corriger-inscription.dto';
+import { CreerEvaluationDto } from './dto/creer-evaluation.dto';
+import { DefinirCodeDto } from './dto/definir-code.dto';
+import { ModifierEvaluationDto } from './dto/modifier-evaluation.dto';
 import { EvaluationsService } from './evaluations.service';
 import { ValidationInscriptionsService } from './validation-inscriptions.service';
 
@@ -37,6 +41,62 @@ export class EvaluationsController {
   @Get()
   lister(@MembreCourant() membre: Membre) {
     return this.evaluations.listerMesEvaluations(membre);
+  }
+
+  // POST /ecole/evaluations : créer un brouillon.
+  @Post()
+  creer(@MembreCourant() membre: Membre, @Body() dto: CreerEvaluationDto) {
+    return this.evaluations.creer(membre, dto);
+  }
+
+  // GET /ecole/evaluations/<id> : le détail pour l'écran d'édition (jamais de code).
+  @Get(':id')
+  detail(
+    @MembreCourant() membre: Membre,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.evaluations.detail(membre, id);
+  }
+
+  // PATCH /ecole/evaluations/<id> : modifier (on n'envoie que ce qui change).
+  @Patch(':id')
+  modifier(
+    @MembreCourant() membre: Membre,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ModifierEvaluationDto,
+  ) {
+    return this.evaluations.modifier(membre, id, dto);
+  }
+
+  // DELETE /ecole/evaluations/<id> : supprimer un brouillon sans inscription.
+  @Delete(':id')
+  supprimer(
+    @MembreCourant() membre: Membre,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.evaluations.supprimer(membre, id);
+  }
+
+  // POST /ecole/evaluations/<id>/codes/acces : (re)génère le code d'accès.
+  @Post(':id/codes/acces')
+  @HttpCode(200)
+  codeAcces(
+    @MembreCourant() membre: Membre,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DefinirCodeDto,
+  ) {
+    return this.evaluations.definirCode(membre, id, 'acces', dto);
+  }
+
+  // POST /ecole/evaluations/<id>/codes/sortie : (re)génère le code de sortie.
+  @Post(':id/codes/sortie')
+  @HttpCode(200)
+  codeSortie(
+    @MembreCourant() membre: Membre,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DefinirCodeDto,
+  ) {
+    return this.evaluations.definirCode(membre, id, 'sortie', dto);
   }
 
   // GET /ecole/evaluations/<id>/inscriptions : les demandes d'inscription.

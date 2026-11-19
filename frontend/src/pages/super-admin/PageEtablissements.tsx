@@ -1,33 +1,33 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
   ajouterAdministrateur,
   changerStatut,
   creerEtablissement,
   listerEtablissements,
-} from '../../api/superAdmin';
-import { ErreurApi, ErreurReseau } from '../../api/http';
-import { EnteteSession } from '../../components/EnteteSession';
-import { useSession } from '../../session/SessionContext';
-import type { EtablissementListe } from '../../types';
+} from "../../api/superAdmin";
+import { ErreurApi, ErreurReseau } from "../../api/http";
+import { EnteteSession } from "../../components/EnteteSession";
+import { useSession } from "../../session/SessionContext";
+import type { EtablissementListe } from "../../types";
 
 // L'espace du super-administrateur : gérer les établissements.
 export function PageEtablissements() {
   const { jeton, deconnecter } = useSession();
-  const jetonSession = jeton ?? '';
+  const jetonSession = jeton ?? "";
 
   const [liste, setListe] = useState<EtablissementListe[] | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
   // Formulaire « créer un établissement »
-  const [nom, setNom] = useState('');
-  const [ville, setVille] = useState('');
+  const [nom, setNom] = useState("");
+  const [ville, setVille] = useState("");
 
   // Formulaire « ajouter un administrateur » (ouvert pour UN établissement à la fois)
   const [ouvert, setOuvert] = useState<string | null>(null);
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminNom, setAdminNom] = useState('');
-  const [adminPrenom, setAdminPrenom] = useState('');
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminNom, setAdminNom] = useState("");
+  const [adminPrenom, setAdminPrenom] = useState("");
 
   // Transforme une erreur en message. Une session refusée (401) déconnecte la personne.
   const traiterErreur = useCallback(
@@ -37,10 +37,10 @@ export function PageEtablissements() {
         return;
       }
       if (e instanceof ErreurReseau) {
-        setErreur('Impossible de joindre le serveur.');
+        setErreur("Impossible de joindre le serveur.");
         return;
       }
-      setErreur(e instanceof Error ? e.message : 'Une erreur est survenue.');
+      setErreur(e instanceof Error ? e.message : "Une erreur est survenue.");
     },
     [deconnecter],
   );
@@ -65,9 +65,9 @@ export function PageEtablissements() {
     setInfo(null);
     try {
       await creerEtablissement(jetonSession, nom.trim(), ville.trim());
-      setNom('');
-      setVille('');
-      setInfo('Établissement créé.');
+      setNom("");
+      setVille("");
+      setInfo("Établissement créé.");
       await charger();
     } catch (e) {
       traiterErreur(e);
@@ -76,12 +76,12 @@ export function PageEtablissements() {
 
   // L'interrupteur actif / inactif. On demande confirmation avant de DÉSACTIVER.
   async function basculer(e: EtablissementListe) {
-    const desactivation = e.statut === 'actif';
+    const desactivation = e.statut === "actif";
     if (
       desactivation &&
       !window.confirm(
         `Désactiver « ${e.nom} » ?\n\nSes enseignants et administrateurs perdent l’accès immédiatement. ` +
-          'Les évaluations déjà commencées se terminent normalement, mais aucune nouvelle ne démarre.',
+          "Les évaluations déjà commencées se terminent normalement, mais aucune nouvelle ne démarre.",
       )
     ) {
       return;
@@ -89,7 +89,11 @@ export function PageEtablissements() {
     setErreur(null);
     setInfo(null);
     try {
-      await changerStatut(jetonSession, e.id, desactivation ? 'inactif' : 'actif');
+      await changerStatut(
+        jetonSession,
+        e.id,
+        desactivation ? "inactif" : "actif",
+      );
       await charger();
     } catch (err) {
       traiterErreur(err);
@@ -111,12 +115,12 @@ export function PageEtablissements() {
         prenom: adminPrenom.trim(),
       });
       setInfo(
-        'Administrateur ajouté : il pourra se connecter avec ce compte Google.',
+        "Administrateur ajouté : il pourra se connecter avec ce compte Google.",
       );
       setOuvert(null);
-      setAdminEmail('');
-      setAdminNom('');
-      setAdminPrenom('');
+      setAdminEmail("");
+      setAdminNom("");
+      setAdminPrenom("");
       await charger();
     } catch (e) {
       traiterErreur(e);
@@ -128,7 +132,10 @@ export function PageEtablissements() {
       <EnteteSession titre="Espace super-administrateur" />
 
       {erreur && (
-        <p role="alert" className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">
+        <p
+          role="alert"
+          className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700"
+        >
           {erreur}
         </p>
       )}
@@ -163,7 +170,7 @@ export function PageEtablissements() {
         </label>
         <button
           type="submit"
-          className="rounded bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+          className="rounded bg-marque-600 px-4 py-2 font-medium text-white hover:bg-marque-700"
         >
           Créer
         </button>
@@ -182,29 +189,29 @@ export function PageEtablissements() {
                 <div>
                   <h2 className="text-lg font-semibold">{e.nom}</h2>
                   <p className="text-sm text-slate-600">
-                    {e.ville ?? 'Ville non renseignée'} · créé le{' '}
-                    {new Date(e.creeLe).toLocaleDateString('fr-FR')}
+                    {e.ville ?? "Ville non renseignée"} · créé le{" "}
+                    {new Date(e.creeLe).toLocaleDateString("fr-FR")}
                   </p>
                 </div>
 
                 {/* L'interrupteur actif / inactif */}
                 <div className="flex items-center gap-2">
                   <span className="text-sm">
-                    {e.statut === 'actif' ? 'Actif' : 'Inactif'}
+                    {e.statut === "actif" ? "Actif" : "Inactif"}
                   </span>
                   <button
                     type="button"
                     role="switch"
-                    aria-checked={e.statut === 'actif'}
+                    aria-checked={e.statut === "actif"}
                     aria-label={`Activer ou désactiver ${e.nom}`}
                     onClick={() => void basculer(e)}
                     className={`relative h-6 w-11 rounded-full transition ${
-                      e.statut === 'actif' ? 'bg-green-600' : 'bg-slate-400'
+                      e.statut === "actif" ? "bg-green-600" : "bg-slate-400"
                     }`}
                   >
                     <span
                       className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-all ${
-                        e.statut === 'actif' ? 'left-5' : 'left-0.5'
+                        e.statut === "actif" ? "left-5" : "left-0.5"
                       }`}
                     />
                   </button>
@@ -215,7 +222,9 @@ export function PageEtablissements() {
               <div className="mt-3">
                 <p className="text-sm font-medium">Administrateurs</p>
                 {e.administrateurs.length === 0 ? (
-                  <p className="text-sm text-slate-500">Aucun pour le moment.</p>
+                  <p className="text-sm text-slate-500">
+                    Aucun pour le moment.
+                  </p>
                 ) : (
                   <ul className="text-sm text-slate-700">
                     {e.administrateurs.map((a) => (
@@ -260,7 +269,7 @@ export function PageEtablissements() {
                   <div className="flex gap-2">
                     <button
                       type="submit"
-                      className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700"
+                      className="rounded bg-marque-600 px-3 py-1 text-sm text-white hover:bg-marque-700"
                     >
                       Ajouter
                     </button>
@@ -277,7 +286,7 @@ export function PageEtablissements() {
                 <button
                   type="button"
                   onClick={() => setOuvert(e.id)}
-                  className="mt-3 text-sm text-blue-700 hover:underline"
+                  className="mt-3 text-sm text-marque-700 hover:underline"
                 >
                   + Ajouter un administrateur
                 </button>

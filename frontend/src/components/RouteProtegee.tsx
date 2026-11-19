@@ -1,13 +1,14 @@
-import type { ReactNode } from 'react';
-import { Navigate } from 'react-router';
-import { useSession } from '../session/SessionContext';
-import type { RoleMembre } from '../types';
+import type { ReactNode } from "react";
+import { Navigate } from "react-router";
+import { useSession } from "../session/SessionContext";
+import type { RoleMembre } from "../types";
 
 interface Props {
   children: ReactNode;
   superAdmin?: boolean; // vrai : réservé au super-administrateur
-  role?: RoleMembre | RoleMembre[]; }
-  // réservé aux personnes ayant l'un de ces rôles dans leur établissement actif
+  role?: RoleMembre | RoleMembre[];
+}
+// réservé aux personnes ayant l'un de ces rôles dans leur établissement actif
 
 // Entoure un écran qui exige une connexion.
 //  - pas connecté : renvoi vers « /connexion »
@@ -15,11 +16,11 @@ interface Props {
 export function RouteProtegee({ children, superAdmin = false, role }: Props) {
   const { etat, profil, etablissementActif, recharger } = useSession();
 
-  if (etat === 'chargement') {
+  if (etat === "chargement") {
     return <p className="p-6">Chargement…</p>;
   }
 
-  if (etat === 'indisponible') {
+  if (etat === "indisponible") {
     return (
       <div className="mx-auto max-w-md p-6">
         <p className="mb-4 rounded bg-orange-50 p-3 text-orange-800">
@@ -28,7 +29,7 @@ export function RouteProtegee({ children, superAdmin = false, role }: Props) {
         <button
           type="button"
           onClick={recharger}
-          className="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+          className="rounded bg-marque-600 px-4 py-2 text-white hover:bg-marque-700"
         >
           Réessayer
         </button>
@@ -36,7 +37,7 @@ export function RouteProtegee({ children, superAdmin = false, role }: Props) {
     );
   }
 
-  if (etat === 'deconnecte' || !profil) {
+  if (etat === "deconnecte" || !profil) {
     return <Navigate to="/connexion" replace />;
   }
 
@@ -44,7 +45,7 @@ export function RouteProtegee({ children, superAdmin = false, role }: Props) {
     return <Navigate to="/" replace />;
   }
 
-    // Écran réservé à un ou plusieurs rôles : il faut un établissement actif ET un rôle autorisé.
+  // Écran réservé à un ou plusieurs rôles : il faut un établissement actif ET un rôle autorisé.
   if (role) {
     const autorises = Array.isArray(role) ? role : [role];
     if (!etablissementActif || !autorises.includes(etablissementActif.role)) {

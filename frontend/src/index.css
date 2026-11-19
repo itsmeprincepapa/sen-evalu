@@ -1,2 +1,39 @@
 /* Active Tailwind dans toute l'application */
 @import "tailwindcss";
+
+/* ---------------------------------------------------------------------------
+   THÈME DE sen-evalu : couleurs et police, définies UNE seule fois ici.
+   Pour changer l'allure de tout le site, on modifie seulement ces lignes.
+   --------------------------------------------------------------------------- */
+@theme {
+  /* Couleur de la marque : un vert profond. Les numéros suivent la convention de Tailwind
+     (50 = très clair ... 950 = très foncé). Les nuances 600 et 700 servent aux boutons et
+     liens : elles sont assez foncées pour un texte blanc bien lisible. */
+  --color-marque-50: #ecfdf5;
+  --color-marque-100: #d1fae5;
+  --color-marque-200: #a7f3d0;
+  --color-marque-300: #6ee7b7;
+  --color-marque-400: #10b981;
+  --color-marque-500: #059669;
+  --color-marque-600: #047857;
+  --color-marque-700: #065f46;
+  --color-marque-800: #064e3b;
+  --color-marque-900: #022c22;
+  --color-marque-950: #011a14;
+
+  /* La police : Inter (installée dans le projet), puis la police du système en secours. */
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Réglages de base appliqués à toute la page. */
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  /* Un contour visible quand on navigue au clavier (accessibilité). */
+  :focus-visible {
+    outline: 2px solid var(--color-marque-500);
+    outline-offset: 2px;
+  }
+}

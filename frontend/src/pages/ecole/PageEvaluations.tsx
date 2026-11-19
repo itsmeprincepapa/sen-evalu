@@ -1,19 +1,21 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router';
-import { listerMesEvaluations } from '../../api/evaluations';
-import { EnteteSession } from '../../components/EnteteSession';
-import { useErreurs } from '../../hooks/useErreurs';
-import { LIBELLES_STATUT_EVALUATION } from '../../lib/libelles';
-import { useSession } from '../../session/SessionContext';
-import type { EvaluationEnseignant } from '../../types';
+import { useEffect, useState } from "react";
+import { Link } from "react-router";
+import { listerMesEvaluations } from "../../api/evaluations";
+import { EnteteSession } from "../../components/EnteteSession";
+import { useErreurs } from "../../hooks/useErreurs";
+import { LIBELLES_STATUT_EVALUATION } from "../../lib/libelles";
+import { useSession } from "../../session/SessionContext";
+import type { EvaluationEnseignant } from "../../types";
 
 // Le contenu de la page, pour UN établissement donné.
 function ListeEvaluations({ idEtablissement }: { idEtablissement: string }) {
   const { jeton } = useSession();
-  const jetonSession = jeton ?? '';
+  const jetonSession = jeton ?? "";
   const { erreur, traiter } = useErreurs();
 
-  const [evaluations, setEvaluations] = useState<EvaluationEnseignant[] | null>(null);
+  const [evaluations, setEvaluations] = useState<EvaluationEnseignant[] | null>(
+    null,
+  );
   const [copie, setCopie] = useState<string | null>(null); // lien dont l'adresse vient d'être copiée
 
   // Charge la liste. Les données arrivent dans une « promesse » : le setState est appelé
@@ -48,12 +50,18 @@ function ListeEvaluations({ idEtablissement }: { idEtablissement: string }) {
     <div className="mx-auto max-w-3xl p-4">
       <EnteteSession titre="Mes évaluations" />
 
-      <Link to="/" className="mb-4 inline-block text-sm text-blue-700 hover:underline">
+      <Link
+        to="/"
+        className="mb-4 inline-block text-sm text-marque-700 hover:underline"
+      >
         ← Retour à l’accueil
       </Link>
 
       {erreur && (
-        <p role="alert" className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">
+        <p
+          role="alert"
+          className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700"
+        >
           {erreur}
         </p>
       )}
@@ -62,21 +70,23 @@ function ListeEvaluations({ idEtablissement }: { idEtablissement: string }) {
         <p>Chargement…</p>
       ) : evaluations.length === 0 ? (
         <p className="text-slate-600">
-          Aucune évaluation pour le moment. (La création arrive à l’étape suivante.)
+          Aucune évaluation pour le moment. (La création arrive à l’étape
+          suivante.)
         </p>
       ) : (
         <ul className="space-y-4">
           {evaluations.map((e) => {
-            const enAttente = e.comptes['en_attente'] ?? 0;
-            const validees = (e.comptes['valide'] ?? 0) + (e.comptes['en_cours'] ?? 0);
+            const enAttente = e.comptes["en_attente"] ?? 0;
+            const validees =
+              (e.comptes["valide"] ?? 0) + (e.comptes["en_cours"] ?? 0);
             return (
               <li key={e.id} className="rounded-lg bg-white p-4 shadow">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="text-lg font-semibold">{e.titre}</h2>
                     <p className="text-sm text-slate-600">
-                      {new Date(e.debut).toLocaleString('fr-FR')} →{' '}
-                      {new Date(e.fin).toLocaleString('fr-FR')}
+                      {new Date(e.debut).toLocaleString("fr-FR")} →{" "}
+                      {new Date(e.fin).toLocaleString("fr-FR")}
                     </p>
                   </div>
                   <span className="rounded bg-slate-100 px-2 py-1 text-xs text-slate-700">
@@ -97,22 +107,24 @@ function ListeEvaluations({ idEtablissement }: { idEtablissement: string }) {
                     onClick={() => void copier(e.lien)}
                     className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50"
                   >
-                    {copie === e.lien ? 'Copié !' : 'Copier'}
+                    {copie === e.lien ? "Copié !" : "Copier"}
                   </button>
                 </div>
 
                 <div className="mt-3 flex items-center justify-between">
                   <p className="text-sm text-slate-600">
                     {enAttente > 0 ? (
-                      <strong className="text-orange-700">{enAttente} en attente</strong>
+                      <strong className="text-orange-700">
+                        {enAttente} en attente
+                      </strong>
                     ) : (
-                      'Aucune demande en attente'
-                    )}{' '}
-                    · {validees} validé{validees > 1 ? 's' : ''}
+                      "Aucune demande en attente"
+                    )}{" "}
+                    · {validees} validé{validees > 1 ? "s" : ""}
                   </p>
                   <Link
                     to={`/ecole/evaluations/${e.id}/inscriptions`}
-                    className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
+                    className="rounded bg-marque-600 px-4 py-2 text-sm text-white hover:bg-marque-700"
                   >
                     Inscriptions
                   </Link>
