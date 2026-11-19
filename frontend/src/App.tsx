@@ -9,6 +9,7 @@ import { PageEnseignants } from './pages/ecole/PageEnseignants';
 import { PageClasse } from './pages/ecole/PageClasse';
 import { PageClasses } from './pages/ecole/PageClasses';
 import { PageEvaluations } from './pages/ecole/PageEvaluations';
+import { PageFormulaireEvaluation } from './pages/ecole/PageFormulaireEvaluation';
 import { PageInscriptions } from './pages/ecole/PageInscriptions';
 import { PageDesign } from './pages/PageDesign';
 
@@ -16,7 +17,7 @@ import { PageDesign } from './pages/PageDesign';
 export default function App() {
   return (
     <div className="min-h-screen">
-            <BrowserRouter>
+      <BrowserRouter>
         <FournisseurSession>
           <Routes>
             {/* Les ÉTUDIANTS : le lien donné par l'enseignant (aucune connexion Google) */}
@@ -44,7 +45,7 @@ export default function App() {
               }
             />
 
-                        {/* Les classes : ouvertes aux administrateurs ET aux enseignants */}
+            {/* Les classes : ouvertes aux administrateurs ET aux enseignants */}
             <Route
               path="/ecole/classes"
               element={
@@ -60,15 +61,30 @@ export default function App() {
                   <PageClasse />
                 </RouteProtegee>
               }
-            
             />
 
-                        {/* Les évaluations de l'enseignant et la validation des inscriptions */}
+            {/* Les évaluations de l'enseignant, leur création et la validation des inscriptions */}
             <Route
               path="/ecole/evaluations"
               element={
                 <RouteProtegee role="enseignant">
                   <PageEvaluations />
+                </RouteProtegee>
+              }
+            />
+            <Route
+              path="/ecole/evaluations/nouvelle"
+              element={
+                <RouteProtegee role="enseignant">
+                  <PageFormulaireEvaluation />
+                </RouteProtegee>
+              }
+            />
+            <Route
+              path="/ecole/evaluations/:id/modifier"
+              element={
+                <RouteProtegee role="enseignant">
+                  <PageFormulaireEvaluation />
                 </RouteProtegee>
               }
             />
@@ -80,6 +96,7 @@ export default function App() {
                 </RouteProtegee>
               }
             />
+
             {/* Accueil des autres personnes connectées */}
             <Route
               path="/"

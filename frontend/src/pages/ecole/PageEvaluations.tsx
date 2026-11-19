@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import { listerMesEvaluations } from "../../api/evaluations";
+import { classesBouton } from "../../components/bouton.styles";
 import { EnteteSession } from "../../components/EnteteSession";
 import { useErreurs } from "../../hooks/useErreurs";
 import { LIBELLES_STATUT_EVALUATION } from "../../lib/libelles";
@@ -50,12 +51,20 @@ function ListeEvaluations({ idEtablissement }: { idEtablissement: string }) {
     <div className="mx-auto max-w-3xl p-4">
       <EnteteSession titre="Mes évaluations" />
 
-      <Link
-        to="/"
-        className="mb-4 inline-block text-sm text-marque-700 hover:underline"
-      >
-        ← Retour à l’accueil
-      </Link>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <Link
+          to="/"
+          className="text-sm text-marque-700 hover:underline"
+        >
+          ← Retour à l’accueil
+        </Link>
+        <Link
+          to="/ecole/evaluations/nouvelle"
+          className={classesBouton("primaire", "m")}
+        >
+          Nouvelle évaluation
+        </Link>
+      </div>
 
       {erreur && (
         <p
@@ -70,8 +79,8 @@ function ListeEvaluations({ idEtablissement }: { idEtablissement: string }) {
         <p>Chargement…</p>
       ) : evaluations.length === 0 ? (
         <p className="text-slate-600">
-          Aucune évaluation pour le moment. (La création arrive à l’étape
-          suivante.)
+          Aucune évaluation pour le moment. Cliquez sur « Nouvelle évaluation »
+          pour commencer.
         </p>
       ) : (
         <ul className="space-y-4">
@@ -111,7 +120,7 @@ function ListeEvaluations({ idEtablissement }: { idEtablissement: string }) {
                   </button>
                 </div>
 
-                <div className="mt-3 flex items-center justify-between">
+                <div className="mt-3 flex items-center justify-between gap-3">
                   <p className="text-sm text-slate-600">
                     {enAttente > 0 ? (
                       <strong className="text-orange-700">
@@ -122,12 +131,20 @@ function ListeEvaluations({ idEtablissement }: { idEtablissement: string }) {
                     )}{" "}
                     · {validees} validé{validees > 1 ? "s" : ""}
                   </p>
-                  <Link
-                    to={`/ecole/evaluations/${e.id}/inscriptions`}
-                    className="rounded bg-marque-600 px-4 py-2 text-sm text-white hover:bg-marque-700"
-                  >
-                    Inscriptions
-                  </Link>
+                  <div className="flex gap-2">
+                    <Link
+                      to={`/ecole/evaluations/${e.id}/modifier`}
+                      className={classesBouton("secondaire", "m")}
+                    >
+                      Modifier
+                    </Link>
+                    <Link
+                      to={`/ecole/evaluations/${e.id}/inscriptions`}
+                      className="rounded bg-marque-600 px-4 py-2 text-sm text-white hover:bg-marque-700"
+                    >
+                      Inscriptions
+                    </Link>
+                  </div>
                 </div>
               </li>
             );

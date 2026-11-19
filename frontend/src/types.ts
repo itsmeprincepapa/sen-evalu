@@ -221,3 +221,47 @@ export interface InscriptionLigne {
   classe: { id: string; nom: string } | null;
   demandeLe: string;
 }
+
+// --- Création et modification d'une évaluation (étape 6D) ---
+
+// Les options d'une évaluation.
+export interface OptionsEvaluation {
+  pleinEcranObligatoire: boolean;
+  detecterChangementOnglet: boolean;
+  melangerQuestions: boolean;
+  navigationLibre: boolean;
+  retourEnArriere: boolean;
+  toleranceCoupureSecondes: number;
+  seuilIncidentsGraves: number;
+}
+
+// Une évaluation en détail, pour l'écran d'édition (le serveur n'envoie jamais un code).
+export interface DetailEvaluation {
+  id: string;
+  titre: string;
+  statut: string;
+  debut: string; // date UTC au format ISO
+  fin: string;
+  dureeMinutes: number;
+  lien: string;
+  inscriptionsOuvertes: boolean;
+  inscriptionsFermeLe: string | null;
+  options: OptionsEvaluation;
+  classes: ClassePublique[];
+  codeAccesDefini: boolean;
+  codeSortieDefini: boolean;
+  nombreQuestions: number;
+  nombreInscriptions: number;
+  modifiable: boolean; // vrai : brouillon ou planifiée
+}
+
+// Ce qu'on envoie pour modifier : seulement les champs qui changent.
+export interface ModificationEvaluation extends Partial<OptionsEvaluation> {
+  titre?: string;
+  debut?: string;
+  fin?: string;
+  dureeMinutes?: number;
+  classeIds?: string[];
+  inscriptionsOuvertes?: boolean;
+  inscriptionsFermeLe?: string | null; // null = pas de date de fermeture
+}
