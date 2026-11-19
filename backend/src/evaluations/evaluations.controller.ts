@@ -98,6 +98,25 @@ export class EvaluationsController {
   ) {
     return this.evaluations.definirCode(membre, id, 'sortie', dto);
   }
+    // POST /ecole/evaluations/<id>/planifier : brouillon -> planifiée (le lien s'ouvre).
+  @Post(':id/planifier')
+  @HttpCode(200)
+  planifier(
+    @MembreCourant() membre: Membre,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.evaluations.planifier(membre, id);
+  }
+
+  // POST /ecole/evaluations/<id>/brouillon : planifiée -> brouillon (si personne n'est entré).
+  @Post(':id/brouillon')
+  @HttpCode(200)
+  brouillon(
+    @MembreCourant() membre: Membre,
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.evaluations.repasserEnBrouillon(membre, id);
+  }
 
   // GET /ecole/evaluations/<id>/inscriptions : les demandes d'inscription.
   @Get(':id/inscriptions')

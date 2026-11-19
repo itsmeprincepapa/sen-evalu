@@ -14,8 +14,7 @@ import { Evaluation } from '../database/entities/evaluation.entity';
 import { Membre } from '../database/entities/membre.entity';
 import { Participation } from '../database/entities/participation.entity';
 import { Question } from '../database/entities/question.entity';
-import { StatutEvaluation } from '../database/enums';
-import { CreerEvaluationDto } from './dto/creer-evaluation.dto';
+import { StatutEvaluation, StatutParticipation } from '../database/enums';import { CreerEvaluationDto } from './dto/creer-evaluation.dto';
 import { DefinirCodeDto } from './dto/definir-code.dto';
 import { ModifierEvaluationDto } from './dto/modifier-evaluation.dto';
 
@@ -322,6 +321,74 @@ export class EvaluationsService {
       quel === 'acces' ? { codeAccesHash: hash } : { codeSortieHash: hash },
     );
     return { code };
+  }
+    // ---------------------------------------------------------------------------
+  // PLANIFIER : le brouillon devient « planifiée » (le lien s'ouvre aux étudiants).
+  // On vérifie d'abord que tout est en place ; sinon on renvoie ce qui manque.
+  // ---------------------------------------------------------------------------
+  async planifier(membre: Membre, id: string) {
+    const evaluation = await this.evaluationDuProprietaire(membre, id, true);
+    if (evaluation.statut !== StatutEvaluation.BROUILLON) {
+      throw new ConflictException('Seul un brouillon peut être planifié.');
+    }
+
+    // On liste TOUT ce qui manque, pour que l'enseignant le corrige en une fois.
+    const manques: string[] = [];
+    const nombreQuestions = await this.questions.countBy({
+      evaluationId: evaluation.id,
+    });
+    if (nombreQuestions === 0) manques.push('Ajoutez au moins une question.');
+    if (evaluation.codeAccesHash === null) {
+      manques.push('Définissez le code d’accès.');
+    }
+    if (evaluation.codeSortieHash === null) {
+      manques.push('Définissez le code de sortie.');
+    }
+    if ((evaluation.classes ?? []).length === 0) {
+      manques.push('Rattachez au moins une classe.');
+    }
+    if (evaluation.fin.getTime() <= Date.now()) {
+      manques.push('La fin de la plage horaire est déjà passée.');
+    }
+    if (manques.length > 0) throw new BadRequestException(manques);
+
+    await this.evaluations.update(evaluation.id, {
+      statut: StatutEvaluation.PLANIFIEE,
+    });
+    return this.detail(membre, evaluation.id);
+  }
+
+  // ---------------------------------------------------------------------------
+  // REPASSER EN BROUILLON : possible seulement tant qu'aucun étudiant n'est entré.
+  // Les inscriptions déjà faites sont conservées ; le lien est simplement refermé.
+  // ---------------------------------------------------------------------------
+  async repasserEnBrouillon(membre: Membre, id: string) {
+    const evaluation = await this.evaluationDuProprietaire(membre, id);
+    if (evaluation.statut !== StatutEvaluation.PLANIFIEE) {
+      throw new ConflictException(
+        'Seule une évaluation planifiée peut repasser en brouillon.',
+      );
+    }
+
+    // « Entré » = en cours, exclu ou terminé (un étudiant a commencé à composer).
+    const entres = await this.participations.countBy({
+      evaluationId: evaluation.id,
+      statut: In([
+        StatutParticipation.EN_COURS,
+        StatutParticipation.EXCLU,
+        StatutParticipation.TERMINE,
+      ]),
+    });
+    if (entres > 0) {
+      throw new ConflictException(
+        'Un étudiant est déjà entré : l’évaluation ne peut plus repasser en brouillon.',
+      );
+    }
+
+    await this.evaluations.update(evaluation.id, {
+      statut: StatutEvaluation.BROUILLON,
+    });
+    return this.detail(membre, evaluation.id);
   }
 
   // ===========================================================================

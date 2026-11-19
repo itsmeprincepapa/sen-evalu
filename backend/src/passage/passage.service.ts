@@ -21,6 +21,7 @@ import {
 } from '../database/enums';
 import { EntrerDto } from './dto/entrer.dto';
 import { SauvegarderDto } from './dto/sauvegarder.dto';
+import { TerminerDto } from './dto/terminer.dto';
 import { MARGE_FIN_SECONDES } from './constantes';
 import { Etablissement } from '../database/entities/etablissement.entity';
 
@@ -55,8 +56,10 @@ export class PassageService {
 
     // 1. L'évaluation existe-t-elle ?
     const evaluation = await this.evaluations.findOneBy({ lien: dto.lien });
-    if (!evaluation) throw this.refus('lien inconnu');
-        // Établissement désactivé par le super-administrateur : les évaluations déjà commencées
+    // Un brouillon n'est pas encore ouvert aux étudiants : même réponse qu'un lien faux.
+    if (!evaluation || evaluation.statut === StatutEvaluation.BROUILLON) {
+      throw this.refus('lien inconnu');
+    }        // Établissement désactivé par le super-administrateur : les évaluations déjà commencées
     // (statut « en cours ») se terminent normalement, mais aucune nouvelle ne démarre.
     if (evaluation.statut !== StatutEvaluation.EN_COURS) {
       const etablissement = await this.etablissements.findOneBy({
@@ -206,14 +209,40 @@ export class PassageService {
     };
   }
 
+   // ---------------------------------------------------------------------------
+  // TERMINER : l'étudiant a fini. Il doit fournir le CODE DE SORTIE donné par
+  // l'enseignant. Un mauvais code est refusé : la participation reste en cours.
   // ---------------------------------------------------------------------------
-  // TERMINER : l'étudiant a fini.
-  // (Prototype : à l'étape 7, il faudra aussi fournir le CODE DE SORTIE.)
-  // ---------------------------------------------------------------------------
-  async terminer(participation: Participation) {
-    if (participation.statut === StatutParticipation.EN_COURS) {
-      await this.cloturer(participation);
+  async terminer(participation: Participation, dto: TerminerDto) {
+    // Déjà terminée (temps écoulé, exclusion...) : il n'y a rien à faire.
+    if (participation.statut !== StatutParticipation.EN_COURS) {
+      return { ok: true };
     }
+
+    // Temps écoulé : on clôture sans exiger le code (l'étudiant n'a plus rien à faire).
+    if (this.tempsEcoule(participation)) {
+      await this.cloturer(participation);
+      return { ok: true };
+    }
+
+    // Le code de sortie est enregistré en majuscules : on normalise la saisie pareil.
+    const evaluation = await this.evaluations.findOneByOrFail({
+      id: participation.evaluationId,
+    });
+    const codeBon = await verifierCode(
+      dto.codeSortie.trim().toUpperCase(),
+      evaluation.codeSortieHash,
+    );
+    if (!codeBon) {
+      // Statut 400 (et non 403) : l'interface comprend ainsi que c'est un simple
+      // mauvais code, et non une participation déjà terminée.
+      throw new BadRequestException({
+        code: 'CODE_SORTIE_FAUX',
+        message: 'Code de sortie incorrect.',
+      });
+    }
+
+    await this.cloturer(participation);
     return { ok: true };
   }
 
