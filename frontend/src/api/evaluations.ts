@@ -137,3 +137,31 @@ export const corrigerInscription = (
     `/ecole/evaluations/${evaluationId}/inscriptions/${participationId}`,
     { methode: 'PATCH', jeton, etablissementId, corps: donnees },
   );
+
+  
+// Planifier : le brouillon devient « planifiée » (le lien s'ouvre aux étudiants).
+// Le serveur refuse en listant ce qui manque si l'évaluation n'est pas prête.
+export const planifierEvaluation = (
+  jeton: string,
+  etablissementId: string,
+  evaluationId: string,
+) =>
+  appeler<DetailEvaluation>(`/ecole/evaluations/${evaluationId}/planifier`, {
+    methode: 'POST',
+    jeton,
+    etablissementId,
+    corps: {},
+  });
+
+// Repasser en brouillon (possible tant qu'aucun étudiant n'est entré).
+export const repasserEnBrouillonEvaluation = (
+  jeton: string,
+  etablissementId: string,
+  evaluationId: string,
+) =>
+  appeler<DetailEvaluation>(`/ecole/evaluations/${evaluationId}/brouillon`, {
+    methode: 'POST',
+    jeton,
+    etablissementId,
+    corps: {},
+  });

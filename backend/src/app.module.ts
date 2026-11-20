@@ -1,17 +1,18 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { toutesLesEntites } from './database/entities';
-import { PassageModule } from './passage/passage.module';
-import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
-import { EtablissementsModule } from './etablissements/etablissements.module';
-import { EnseignantsModule } from './enseignants/enseignants.module';
 import { ClassesModule } from './classes/classes.module';
-import { InscriptionModule } from './inscription/inscription.module';
+import { toutesLesEntites } from './database/entities';
+import { EnseignantsModule } from './enseignants/enseignants.module';
+import { EtablissementsModule } from './etablissements/etablissements.module';
 import { EvaluationsModule } from './evaluations/evaluations.module';
+import { InscriptionModule } from './inscription/inscription.module';
+import { PassageModule } from './passage/passage.module';
+import { SuiviModule } from './suivi/suivi.module';
 
 @Module({
   imports: [
@@ -33,10 +34,10 @@ import { EvaluationsModule } from './evaluations/evaluations.module';
         database: config.getOrThrow<string>('DB_NAME'),
         // Même encodage que la base : accents et caractères spéciaux
         charset: 'utf8mb4',
-                // « Z » = heure universelle (UTC) : toutes les dates sont enregistrées
+        // « Z » = heure universelle (UTC) : toutes les dates sont enregistrées
         // de la même façon, sans décalage entre votre ordinateur et un futur hébergeur.
         timezone: 'Z',
-                // La liste de nos tables (entités), définie dans database/entities/index.ts
+        // La liste de nos tables (entités), définie dans database/entities/index.ts
         entities: toutesLesEntites,
         // NE JAMAIS METTRE true : la structure de la base ne doit changer
         // que par des migrations, jamais automatiquement (risque de perte de données)
@@ -44,29 +45,32 @@ import { EvaluationsModule } from './evaluations/evaluations.module';
       }),
     }),
 
-        // Active les tâches automatiques (@Interval). À appeler UNE SEULE FOIS, ici.
+    // Active les tâches automatiques (@Interval). À appeler UNE SEULE FOIS, ici.
     ScheduleModule.forRoot(),
-    
-        // La connexion Google et les sessions
+
+    // La connexion Google et les sessions
     AuthModule,
 
-        // La gestion des établissements (super-administrateur) et le contexte d'établissement
+    // La gestion des établissements (super-administrateur) et le contexte d'établissement
     EtablissementsModule,
 
-        // La gestion des enseignants par l'administrateur d'école
+    // La gestion des enseignants par l'administrateur d'école
     EnseignantsModule,
 
-        // Les classes d'une école et leurs étudiants
+    // Les classes d'une école et leurs étudiants
     ClassesModule,
 
-        // L'inscription des étudiants par le lien (routes publiques)
+    // L'inscription des étudiants par le lien (routes publiques)
     InscriptionModule,
 
-        // Les évaluations de l'enseignant (liste, validation des inscriptions)
+    // Les évaluations de l'enseignant (liste, création, questions, validation des inscriptions)
     EvaluationsModule,
-    
-        // Le passage d'une évaluation par un étudiant
+
+    // Le passage d'une évaluation par un étudiant
     PassageModule,
+
+    // Le suivi d'une évaluation par l'enseignant (état, journal, actions)
+    SuiviModule,
   ],
   controllers: [AppController],
   providers: [AppService],

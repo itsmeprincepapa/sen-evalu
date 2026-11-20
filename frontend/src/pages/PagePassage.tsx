@@ -3,10 +3,10 @@ import { ErreurApi, ErreurReseau, lireEtat } from '../api/passage';
 import { EcranFin } from '../components/EcranFin';
 import { Epreuve } from '../components/Epreuve';
 import { EcranEntree } from '../components/EcranEntree';
+import type { MotifFin } from '../hooks/useSauvegardeAuto';
 import { effacerCopie, lireCopie, type CopieLocale } from '../lib/copieLocale';
 import type { Entree } from '../types';
 
-type MotifFin = 'temps' | 'termine' | 'session';
 // La page est toujours dans UNE de ces quatre « phases ».
 type Phase =
   | { nom: 'chargement' }
@@ -17,8 +17,7 @@ type Phase =
       cleCopie: string;
       copieInitiale: CopieLocale;
     }
-  | { nom: 'fin'; 
-    motif: MotifFin };
+  | { nom: 'fin'; motif: MotifFin };
 
 // --- La session de cet onglet (sessionStorage) ---
 // Elle garde le jeton : au rechargement de la page (F5), on reprend sans retaper le code.
@@ -76,6 +75,13 @@ function versEpreuve(lien: string, entree: Entree, email: string): Phase {
   };
 }
 
+// À la fin de l'évaluation, on quitte le plein écran (s'il est actif).
+function quitterPleinEcran(): void {
+  if (document.fullscreenElement) {
+    document.exitFullscreen().catch(() => undefined);
+  }
+}
+
 export function PagePassage() {
   const lien = lireLienDansAdresse();
 
@@ -124,13 +130,18 @@ export function PagePassage() {
           if (
             erreur instanceof ErreurApi &&
             erreur.statut === 403 &&
-            (erreur.code === 'TEMPS_ECOULE' || erreur.code === 'TERMINE')
+            (erreur.code === 'TEMPS_ECOULE' ||
+              erreur.code === 'TERMINE' ||
+              erreur.code === 'EXCLU')
           ) {
-            // Le temps est écoulé ou l'évaluation est terminée : écran de fin.
-            setPhase({
-              nom: 'fin',
-              motif: erreur.code === 'TEMPS_ECOULE' ? 'temps' : 'termine',
-            });
+            // Temps écoulé, évaluation terminée ou exclusion : écran de fin.
+            const motif: MotifFin =
+              erreur.code === 'TEMPS_ECOULE'
+                ? 'temps'
+                : erreur.code === 'EXCLU'
+                  ? 'exclu'
+                  : 'termine';
+            setPhase({ nom: 'fin', motif });
           } else {
             setPhase({ nom: 'entree' }); // session invalide
           }
@@ -185,9 +196,14 @@ export function PagePassage() {
         copieInitiale={phase.copieInitiale}
         onFin={(motif) => {
           effacerSession();
-          // Sauf si la session a été remplacée par un autre onglet (qui en a encore besoin),
-          // le serveur est la référence : on efface la copie locale.
-          if (motif !== 'session') effacerCopie(phase.cleCopie);
+          quitterPleinEcran();
+          // Le serveur est la référence : on efface la copie locale, sauf dans deux cas
+          // où elle peut encore servir : session remplacée par un autre onglet (qui en a
+          // besoin) et exclusion (si l'enseignant réintègre, les réponses non envoyées
+          // seront alors renvoyées).
+          if (motif !== 'session' && motif !== 'exclu') {
+            effacerCopie(phase.cleCopie);
+          }
           setPhase({ nom: 'fin', motif });
         }}
       />

@@ -16,6 +16,11 @@ const MESSAGES: Record<MotifFin, { titre: string; texte: string }> = {
     texte:
       'Vous vous êtes connecté depuis un autre onglet ou un autre appareil : cette page n’est plus active.',
   },
+  exclu: {
+    titre: 'Vous avez été exclu de l’évaluation',
+    texte:
+      'Vous avez atteint le nombre d’incidents graves autorisé (sortie du plein écran ou changement d’onglet). Vos réponses déjà envoyées ont été conservées. Seul votre enseignant peut vous réintégrer : adressez-vous à lui.',
+  },
 };
 
 export function EcranFin({ motif }: { motif: MotifFin }) {

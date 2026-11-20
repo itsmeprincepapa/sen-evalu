@@ -9,34 +9,52 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { verifierCode } from '../common/codes';
+import { melangerStable } from '../common/melange';
+import { Etablissement } from '../database/entities/etablissement.entity';
 import { Evaluation } from '../database/entities/evaluation.entity';
+import { Incident } from '../database/entities/incident.entity';
 import { Participation } from '../database/entities/participation.entity';
 import { Question } from '../database/entities/question.entity';
 import { Reponse } from '../database/entities/reponse.entity';
 import {
+  GraviteIncident,
   StatutEtablissement,
   StatutEvaluation,
   StatutParticipation,
+  TypeIncident,
   TypeQuestion,
 } from '../database/enums';
+import { calculerFinPrevue } from './chrono';
+import { MARGE_FIN_SECONDES } from './constantes';
 import { EntrerDto } from './dto/entrer.dto';
 import { SauvegarderDto } from './dto/sauvegarder.dto';
+import { SignalerIncidentDto } from './dto/signaler-incident.dto';
 import { TerminerDto } from './dto/terminer.dto';
-import { MARGE_FIN_SECONDES } from './constantes';
-import { Etablissement } from '../database/entities/etablissement.entity';
 
 // Taille maximale d'une réponse rédigée ou d'un programme (en caractères).
 const LONGUEUR_MAX_TEXTE = 20_000;
+
+// Deux signaux d'incident grave reçus à moins de 2 secondes d'intervalle comptent pour UN
+// seul incident : une même action de l'étudiant peut déclencher deux événements du navigateur.
+const DELAI_ANTI_DOUBLON_MS = 2_000;
+
+// L'interface envoie un signal toutes les 10 secondes. Tant que le silence reste sous
+// 15 secondes, c'est normal : on ne cherche même pas s'il y a eu une coupure.
+const SILENCE_NORMAL_MS = 15_000;
 
 @Injectable()
 export class PassageService {
   // Le « logger » écrit dans le terminal du serveur : utile pour comprendre un refus.
   private readonly logger = new Logger(PassageService.name);
 
+  // Heure du dernier incident grave de chaque participation (gardée en mémoire du serveur :
+  // c'est cohérent avec « un seul serveur », et ces valeurs n'ont d'intérêt que quelques secondes).
+  private readonly dernierIncidentGrave = new Map<string, number>();
+
   constructor(
     @InjectRepository(Evaluation)
     private readonly evaluations: Repository<Evaluation>,
-        @InjectRepository(Etablissement)
+    @InjectRepository(Etablissement)
     private readonly etablissements: Repository<Etablissement>,
     @InjectRepository(Participation)
     private readonly participations: Repository<Participation>,
@@ -44,6 +62,8 @@ export class PassageService {
     private readonly questions: Repository<Question>,
     @InjectRepository(Reponse)
     private readonly reponses: Repository<Reponse>,
+    @InjectRepository(Incident)
+    private readonly incidents: Repository<Incident>,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -59,7 +79,19 @@ export class PassageService {
     // Un brouillon n'est pas encore ouvert aux étudiants : même réponse qu'un lien faux.
     if (!evaluation || evaluation.statut === StatutEvaluation.BROUILLON) {
       throw this.refus('lien inconnu');
-    }        // Établissement désactivé par le super-administrateur : les évaluations déjà commencées
+    }
+    // Évaluation terminée (fin anticipée, plage horaire finie...) : plus personne n'entre.
+    if (
+      evaluation.statut === StatutEvaluation.TERMINEE ||
+      evaluation.statut === StatutEvaluation.CORRIGEE ||
+      evaluation.statut === StatutEvaluation.PUBLIEE
+    ) {
+      throw new ForbiddenException({
+        code: 'EVALUATION_TERMINEE',
+        message: 'Cette évaluation est terminée.',
+      });
+    }
+    // Établissement désactivé par le super-administrateur : les évaluations déjà commencées
     // (statut « en cours ») se terminent normalement, mais aucune nouvelle ne démarre.
     if (evaluation.statut !== StatutEvaluation.EN_COURS) {
       const etablissement = await this.etablissements.findOneBy({
@@ -87,13 +119,14 @@ export class PassageService {
     const codeBon = await verifierCode(
       dto.codeAcces.trim().toUpperCase(),
       evaluation.codeAccesHash,
-    );    if (!codeBon) throw this.refus('code d’accès faux');
+    );
+    if (!codeBon) throw this.refus('code d’accès faux');
 
     // 5. Que faire selon la situation de l'étudiant ?
     if (participation.statut === StatutParticipation.VALIDE) {
       // Première entrée : on démarre le chronomètre.
       participation.debutAt = maintenant;
-      participation.finPrevueAt = this.calculerFinPrevue(
+      participation.finPrevueAt = calculerFinPrevue(
         maintenant,
         evaluation.dureeMinutes,
         participation.tempsSupplementaireSecondes,
@@ -110,13 +143,35 @@ export class PassageService {
           message: 'Le temps est écoulé.',
         });
       }
+
+      // SESSION UNIQUE : si une session est déjà ouverte, cette seconde connexion est
+      // BLOQUÉE. L'enseignant doit autoriser la reconnexion (cela efface la session).
+      if (participation.sessionId !== null) {
+        this.logger.warn(
+          `Seconde connexion bloquée pour la participation ${participation.id}`,
+        );
+        throw new ForbiddenException({
+          code: 'SESSION_DEJA_OUVERTE',
+          message:
+            'Vous êtes déjà connecté (autre onglet ou autre appareil). Demandez à votre enseignant d’autoriser la reconnexion.',
+        });
+      }
+    } else if (participation.statut === StatutParticipation.EXCLU) {
+      // Exclu pour incidents graves : seul l'enseignant peut le réintégrer.
+      // (Le code d'accès a été vérifié juste avant : on peut donc expliquer la situation.)
+      throw new ForbiddenException({
+        code: 'EXCLU',
+        message:
+          'Vous avez été exclu de cette évaluation. Seul votre enseignant peut vous réintégrer.',
+      });
     } else {
-      // En attente, refusé, exclu ou terminé : pas d'accès.
+      // En attente, refusé ou terminé : pas d'accès.
       throw this.refus(`statut « ${participation.statut} »`);
     }
 
-    // 6. Nouvelle session : un nouveau jeton REMPLACE l'ancien.
-    // L'ancien onglet sera refusé à sa prochaine requête.
+    // 6. Ouverture de la session. On n'arrive ici que pour la PREMIÈRE entrée, ou après
+    // une autorisation de reconnexion de l'enseignant (qui a effacé l'ancienne session).
+    // Si un ancien onglet existe encore, il sera refusé à sa prochaine requête.
     participation.sessionId = randomBytes(24).toString('hex');
     participation.derniereActiviteAt = maintenant;
     await this.participations.save(participation);
@@ -209,7 +264,103 @@ export class PassageService {
     };
   }
 
-   // ---------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // SIGNALER UN INCIDENT : l'interface a détecté une sortie du plein écran ou un
+  // changement d'onglet. Règles : 1er incident grave = avertissement ; quand le nombre
+  // d'incidents graves atteint le seuil (2 par défaut) = exclusion.
+  // Le chronomètre continue pendant l'exclusion ; seul l'enseignant peut réintégrer.
+  // ---------------------------------------------------------------------------
+  async signalerIncident(
+    participation: Participation,
+    dto: SignalerIncidentDto,
+  ) {
+    // Refuse si la participation est terminée, exclue ou si le temps est écoulé.
+    await this.verifierPeutRepondre(participation);
+
+    const evaluation = await this.evaluations.findOneByOrFail({
+      id: participation.evaluationId,
+    });
+    const seuil = evaluation.seuilIncidentsGraves;
+
+    // Réponse « rien à compter » : l'incident est ignoré.
+    const ignore = {
+      ok: true,
+      ignore: true,
+      exclu: false,
+      nbIncidentsGraves: participation.nbIncidentsGraves,
+      seuil,
+    };
+
+    // L'enseignant peut désactiver chaque surveillance : l'incident est alors ignoré.
+    const surveille =
+      dto.type === TypeIncident.SORTIE_PLEIN_ECRAN
+        ? evaluation.pleinEcranObligatoire
+        : evaluation.detecterChangementOnglet;
+    if (!surveille) return ignore;
+
+    // Anti-doublon : un même geste peut produire deux signaux presque simultanés.
+    const maintenant = Date.now();
+    const precedent = this.dernierIncidentGrave.get(participation.id);
+    if (precedent !== undefined && maintenant - precedent < DELAI_ANTI_DOUBLON_MS) {
+      return ignore;
+    }
+    this.dernierIncidentGrave.set(participation.id, maintenant);
+    this.purgerAntiDoublon(maintenant);
+
+    // On enregistre l'incident dans le journal et on augmente le compteur.
+    await this.incidents.save(
+      this.incidents.create({
+        participationId: participation.id,
+        type: dto.type,
+        gravite: GraviteIncident.GRAVE,
+        details: null,
+      }),
+    );
+    await this.participations.increment(
+      { id: participation.id },
+      'nbIncidentsGraves',
+      1,
+    );
+    const misAJour = await this.participations.findOneByOrFail({
+      id: participation.id,
+    });
+    const nb = misAJour.nbIncidentsGraves;
+
+    // Seuil atteint : exclusion. Le jeton de session reste valable pour que l'étudiant
+    // reçoive ensuite un refus clair (code « EXCLU ») ; ses réponses déjà envoyées restent
+    // enregistrées.
+    if (nb >= seuil) {
+      await this.participations.update(participation.id, {
+        statut: StatutParticipation.EXCLU,
+      });
+      await this.incidents.save(
+        this.incidents.create({
+          participationId: participation.id,
+          type: TypeIncident.EXCLUSION,
+          gravite: GraviteIncident.GRAVE,
+          details: `Seuil de ${seuil} incident(s) grave(s) atteint`,
+        }),
+      );
+      this.logger.warn(`Étudiant exclu : participation ${participation.id}`);
+      return {
+        ok: true,
+        ignore: false,
+        exclu: true,
+        nbIncidentsGraves: nb,
+        seuil,
+      };
+    }
+
+    return {
+      ok: true,
+      ignore: false,
+      exclu: false,
+      nbIncidentsGraves: nb,
+      seuil,
+    };
+  }
+
+  // ---------------------------------------------------------------------------
   // TERMINER : l'étudiant a fini. Il doit fournir le CODE DE SORTIE donné par
   // l'enseignant. Un mauvais code est refusé : la participation reste en cours.
   // ---------------------------------------------------------------------------
@@ -250,21 +401,6 @@ export class PassageService {
   // Fonctions internes (non exposées)
   // ===========================================================================
 
-  // Heure de fin = le plus tôt entre « début + durée + temps supplémentaire »
-  // et la fin de la plage horaire de l'évaluation.
-  private calculerFinPrevue(
-    debut: Date,
-    dureeMinutes: number,
-    tempsSupplementaireSecondes: number,
-    finPlage: Date,
-  ): Date {
-    const finParDuree =
-      debut.getTime() +
-      dureeMinutes * 60_000 +
-      tempsSupplementaireSecondes * 1000;
-    return new Date(Math.min(finParDuree, finPlage.getTime()));
-  }
-
   // Temps restant en secondes (jamais négatif), calculé avec l'horloge du SERVEUR.
   private tempsRestantSecondes(participation: Participation): number {
     if (!participation.finPrevueAt) return 0;
@@ -293,6 +429,13 @@ export class PassageService {
   private async verifierPeutRepondre(
     participation: Participation,
   ): Promise<void> {
+    // Exclu : l'interface affiche l'écran d'exclusion (les réponses sont conservées).
+    if (participation.statut === StatutParticipation.EXCLU) {
+      throw new ForbiddenException({
+        code: 'EXCLU',
+        message: 'Vous avez été exclu de l’évaluation.',
+      });
+    }
     if (participation.statut !== StatutParticipation.EN_COURS) {
       throw new ForbiddenException({
         code: 'TERMINE',
@@ -348,13 +491,22 @@ export class PassageService {
     const evaluation = await this.evaluations.findOneByOrFail({
       id: participation.evaluationId,
     });
-    const questions = await this.questions.find({
+    const questionsEnBase = await this.questions.find({
       where: { evaluationId: evaluation.id },
       order: { ordre: 'ASC' },
     });
     const reponses = await this.reponses.findBy({
       participationId: participation.id,
     });
+
+    // MÉLANGE (option de l'enseignant) : l'ordre des questions ET celui des propositions
+    // des QCM sont mélangés, différemment pour chaque étudiant, mais de façon STABLE :
+    // même ordre à chaque rechargement ou reprise (la graine est l'identifiant de la
+    // participation, qui ne change jamais).
+    const melanger = evaluation.melangerQuestions;
+    const questions = melanger
+      ? melangerStable(questionsEnBase, participation.id)
+      : questionsEnBase;
 
     return {
       statut: participation.statut,
@@ -368,7 +520,7 @@ export class PassageService {
         detecterChangementOnglet: evaluation.detecterChangementOnglet,
       },
       // ATTENTION : on ENLÈVE « correcte » des propositions : l'étudiant ne doit
-      // jamais recevoir les bonnes réponses. (Le mélange des questions viendra plus tard.)
+      // jamais recevoir les bonnes réponses.
       questions: questions.map((q) => ({
         id: q.id,
         ordre: q.ordre,
@@ -377,7 +529,10 @@ export class PassageService {
         points: q.points,
         langage: q.langage,
         options: q.options
-          ? q.options.map((o) => ({ id: o.id, texte: o.texte }))
+          ? (melanger
+              ? melangerStable(q.options, `${participation.id}:${q.id}`)
+              : q.options
+            ).map((o) => ({ id: o.id, texte: o.texte }))
           : null,
       })),
       // Les réponses déjà enregistrées (pour la reprise).
@@ -403,11 +558,61 @@ export class PassageService {
     };
   }
 
-  // Enregistre le dernier signal de vie de l'étudiant.
+  // Enregistre le dernier signal de vie de l'étudiant. Si le silence précédent a dépassé
+  // la tolérance de coupure, la coupure est d'abord écrite dans le journal.
   private async marquerActivite(participation: Participation): Promise<void> {
+    const maintenant = new Date();
+    await this.noterCoupureSiBesoin(participation, maintenant);
     await this.participations.update(participation.id, {
-      derniereActiviteAt: new Date(),
+      derniereActiviteAt: maintenant,
     });
+  }
+
+  // COUPURE : si l'étudiant redonne signe de vie après un silence plus long que la
+  // tolérance de l'évaluation (60 secondes par défaut), on écrit « coupure » (avec sa
+  // durée) et « reconnexion » dans le journal. Gravité « information » : cela ne compte
+  // pas pour l'exclusion.
+  private async noterCoupureSiBesoin(
+    participation: Participation,
+    maintenant: Date,
+  ): Promise<void> {
+    const dernier = participation.derniereActiviteAt;
+    if (!dernier) return;
+    const silenceMs = maintenant.getTime() - dernier.getTime();
+
+    // Cas normal : on évite une requête supplémentaire à chaque signal.
+    if (silenceMs <= SILENCE_NORMAL_MS) return;
+
+    const evaluation = await this.evaluations.findOneByOrFail({
+      id: participation.evaluationId,
+    });
+    // Coupure tolérée : pas notée.
+    if (silenceMs <= evaluation.toleranceCoupureSecondes * 1000) return;
+
+    const secondes = Math.round(silenceMs / 1000);
+    await this.incidents.save([
+      this.incidents.create({
+        participationId: participation.id,
+        type: TypeIncident.COUPURE,
+        gravite: GraviteIncident.INFORMATION,
+        details: `Connexion coupée pendant environ ${secondes} s`,
+      }),
+      this.incidents.create({
+        participationId: participation.id,
+        type: TypeIncident.RECONNEXION,
+        gravite: GraviteIncident.INFORMATION,
+        details: null,
+      }),
+    ]);
+  }
+
+  // Supprime de temps en temps les heures d'incident trop anciennes (elles ne servent
+  // que pendant quelques secondes) : sans cela, la liste grossirait sans fin.
+  private purgerAntiDoublon(maintenant: number): void {
+    if (this.dernierIncidentGrave.size < 1000) return;
+    for (const [id, heure] of this.dernierIncidentGrave) {
+      if (maintenant - heure > 60_000) this.dernierIncidentGrave.delete(id);
+    }
   }
 
   // Reconnaît l'erreur MySQL « entrée en double » (index unique violé).

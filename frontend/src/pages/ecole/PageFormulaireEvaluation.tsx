@@ -6,6 +6,8 @@ import {
   definirCodeEvaluation,
   lireEvaluation,
   modifierEvaluation,
+  planifierEvaluation,
+  repasserEnBrouillonEvaluation,
   supprimerEvaluation,
 } from "../../api/evaluations";
 import { EnteteSession } from "../../components/EnteteSession";
@@ -240,6 +242,8 @@ function ContenuFormulaire({ idEtablissement, idEvaluation }: Props) {
   const [info, setInfo] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
   const [lienCopie, setLienCopie] = useState(false);
+  // L'heure d'ouverture de la page, pour vérifier que la fin de la plage est dans le futur.
+  const [maintenant] = useState(() => Date.now());
 
   // Charge les classes de l'école et, pour une modification, l'évaluation.
   // Les données arrivent dans une « promesse » : le setState est appelé quand elles
@@ -338,14 +342,14 @@ function ContenuFormulaire({ idEtablissement, idEvaluation }: Props) {
         );
       }
 
-      const maj = await modifierEvaluation(
+      const resultat = await modifierEvaluation(
         jetonSession,
         idEtablissement,
         idEvaluation,
         donnees,
       );
-      setDetail(maj);
-      setF(versFormulaire(maj));
+      setDetail(resultat);
+      setF(versFormulaire(resultat));
       setInfo("Modifications enregistrées.");
     } catch (e) {
       traiter(e);
@@ -389,6 +393,45 @@ function ContenuFormulaire({ idEtablissement, idEvaluation }: Props) {
     }
   }
 
+  // Passe le brouillon en « planifiée » : le lien s'ouvre aux étudiants.
+  // (Le serveur refuse en listant ce qui manque, et traiter() affiche ce message.)
+  async function planifier() {
+    if (!idEvaluation) return;
+    setErreur(null);
+    setInfo(null);
+    setEnCours(true);
+    try {
+      const resultat = await planifierEvaluation(jetonSession, idEtablissement, idEvaluation);
+      setDetail(resultat);
+      setInfo("Évaluation planifiée : les étudiants peuvent maintenant s’inscrire avec le lien.");
+    } catch (e) {
+      traiter(e);
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  // Referme le lien : possible seulement tant qu'aucun étudiant n'est entré.
+  async function repasserEnBrouillon() {
+    if (!idEvaluation) return;
+    setErreur(null);
+    setInfo(null);
+    setEnCours(true);
+    try {
+      const resultat = await repasserEnBrouillonEvaluation(
+        jetonSession,
+        idEtablissement,
+        idEvaluation,
+      );
+      setDetail(resultat);
+      setInfo("L’évaluation est repassée en brouillon : le lien est fermé aux étudiants.");
+    } catch (e) {
+      traiter(e);
+    } finally {
+      setEnCours(false);
+    }
+  }
+
   async function copierLien(lien: string) {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/e/${lien}`);
@@ -406,6 +449,21 @@ function ContenuFormulaire({ idEtablissement, idEvaluation }: Props) {
   // Les inscriptions restent réglables jusqu'à la fin de l'évaluation.
   const inscriptionsReglables =
     detail !== null && ["brouillon", "planifiee", "en_cours"].includes(detail.statut);
+
+  // Ce qu'il faut avoir avant de planifier (calculé sur les données ENREGISTRÉES).
+  const verifications = detail
+    ? [
+        { ok: detail.nombreQuestions > 0, texte: "Au moins une question" },
+        { ok: detail.codeAccesDefini, texte: "Code d'accès défini" },
+        { ok: detail.codeSortieDefini, texte: "Code de sortie défini" },
+        { ok: detail.classes.length > 0, texte: "Au moins une classe rattachée" },
+        {
+          ok: new Date(detail.fin).getTime() > maintenant,
+          texte: "La fin de la plage horaire est dans le futur",
+        },
+      ]
+    : [];
+  const toutEstPret = verifications.every((v) => v.ok);
 
   return (
     <div className="mx-auto max-w-3xl p-4">
@@ -616,9 +674,55 @@ function ContenuFormulaire({ idEtablissement, idEvaluation }: Props) {
             </div>
           </form>
 
-          {/* --- Codes et lien : seulement pour une évaluation qui existe --- */}
+          {/* --- Planification, codes et lien : seulement pour une évaluation qui existe --- */}
           {!creation && detail && (
             <>
+              {(detail.statut === "brouillon" || detail.statut === "planifiee") && (
+                <Carte className="space-y-3">
+                  <h2 className="text-lg font-semibold text-slate-900">Planification</h2>
+                  {detail.statut === "brouillon" ? (
+                    <>
+                      <p className="text-sm text-slate-600">
+                        Tant que l’évaluation est un brouillon, son lien ne fonctionne pas
+                        pour les étudiants. Les vérifications portent sur les données
+                        enregistrées : enregistrez vos modifications avant de planifier.
+                      </p>
+                      <ul className="space-y-1 text-sm">
+                        {verifications.map((v) => (
+                          <li
+                            key={v.texte}
+                            className={v.ok ? "text-marque-800" : "text-amber-800"}
+                          >
+                            {v.ok ? "✓" : "✗"} {v.texte}
+                          </li>
+                        ))}
+                      </ul>
+                      <Bouton
+                        disabled={enCours || !toutEstPret}
+                        onClick={() => void planifier()}
+                      >
+                        Planifier l’évaluation
+                      </Bouton>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm text-slate-600">
+                        L’évaluation est planifiée : les étudiants peuvent s’inscrire avec
+                        le lien, et entrer avec le code d’accès pendant la plage horaire.
+                        Vous pouvez encore la modifier tant qu’aucun étudiant n’est entré.
+                      </p>
+                      <Bouton
+                        variante="secondaire"
+                        disabled={enCours}
+                        onClick={() => void repasserEnBrouillon()}
+                      >
+                        Repasser en brouillon
+                      </Bouton>
+                    </>
+                  )}
+                </Carte>
+              )}
+
               <Carte className="space-y-4">
                 <h2 className="text-lg font-semibold text-slate-900">Codes</h2>
                 <BlocCode
@@ -641,6 +745,11 @@ function ContenuFormulaire({ idEtablissement, idEvaluation }: Props) {
 
               <Carte className="space-y-3">
                 <h2 className="text-lg font-semibold text-slate-900">Lien à partager</h2>
+                {detail.statut === "brouillon" && (
+                  <Alerte type="attention">
+                    Ce lien ne fonctionnera pour les étudiants qu’après la planification.
+                  </Alerte>
+                )}
                 <div className="flex gap-2">
                   <input
                     readOnly
@@ -654,7 +763,7 @@ function ContenuFormulaire({ idEtablissement, idEvaluation }: Props) {
                 </div>
               </Carte>
 
-                       <Carte className="space-y-3">
+              <Carte className="space-y-3">
                 <h2 className="text-lg font-semibold text-slate-900">Questions</h2>
                 <p className="text-sm text-slate-600">
                   {detail.nombreQuestions} question{detail.nombreQuestions > 1 ? "s" : ""}.

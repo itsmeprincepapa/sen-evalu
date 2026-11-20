@@ -292,3 +292,15 @@ export interface DonneesQuestion {
   langage: string | null; // seulement pour une question de code
   options: { texte: string; correcte: boolean }[] | null; // seulement pour un QCM
 }
+
+
+// --- Anti-triche (étape 8) ---
+
+// Réponse de « /passage/incidents » : l'avertissement ou l'exclusion décidés par le serveur.
+export interface ResultatIncident {
+  ok: boolean;
+  ignore: boolean; // le serveur n'a rien compté (doublon ou surveillance désactivée)
+  exclu: boolean;
+  nbIncidentsGraves: number;
+  seuil: number;
+}

@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { Etablissement } from '../database/entities/etablissement.entity';
 import { Evaluation } from '../database/entities/evaluation.entity';
+import { Incident } from '../database/entities/incident.entity';
 import { Participation } from '../database/entities/participation.entity';
 import { Question } from '../database/entities/question.entity';
 import { Reponse } from '../database/entities/reponse.entity';
@@ -8,7 +10,6 @@ import { ClotureAutomatiqueService } from './cloture-automatique.service';
 import { PassageController } from './passage.controller';
 import { PassageService } from './passage.service';
 import { SessionEtudiantGuard } from './session-etudiant.guard';
-import { Etablissement } from '../database/entities/etablissement.entity';
 
 // Un module regroupe tout ce qui concerne UNE fonction de l'application :
 // ici, le passage d'une évaluation par un étudiant.
@@ -21,6 +22,7 @@ import { Etablissement } from '../database/entities/etablissement.entity';
       Question,
       Reponse,
       Etablissement,
+      Incident,
     ]),
   ],
   controllers: [PassageController],

@@ -17,8 +17,9 @@ const PERIODE_SYNCHRO_MS = 10_000;
 export type EtatReseau = 'connecte' | 'hors-ligne';
 
 // Pourquoi l'évaluation se termine : temps écoulé, terminée par l'étudiant,
-// ou session remplacée (le même étudiant s'est reconnecté ailleurs).
-export type MotifFin = 'temps' | 'termine' | 'session';
+// session remplacée (le même étudiant s'est reconnecté ailleurs) ou exclusion
+// après trop d'incidents graves.
+export type MotifFin = 'temps' | 'termine' | 'session' | 'exclu';
 
 // Une réponse en cours d'écriture.
 //  - version : augmente à chaque modification
@@ -96,7 +97,10 @@ export function useSauvegardeAuto(p: Parametres) {
   // Instant de fin, mesuré avec l'horloge MONOTONE du navigateur (performance.now) :
   // elle ne dépend pas de l'heure de l'ordinateur, donc changer l'heure
   // de Windows ne donne aucun temps en plus.
-  const finMonotone = useRef(performance.now() + secondesInitiales * 1000);
+  // L'instant de départ est lu UNE seule fois, dans la fonction de départ de useState
+  // (seul endroit autorisé pour une valeur qui change à chaque lecture).
+  const [departMonotone] = useState(() => performance.now());
+  const finMonotone = useRef(departMonotone + secondesInitiales * 1000);
 
   const finie = useRef(false); // l'évaluation est-elle terminée ?
   const finDemandee = useRef(false); // la fin par le temps a-t-elle déjà été lancée ?
@@ -145,6 +149,10 @@ export function useSauvegardeAuto(p: Parametres) {
         }
         if (erreur.statut === 403 && erreur.code === 'TERMINE') {
           finir('termine');
+          return;
+        }
+        if (erreur.statut === 403 && erreur.code === 'EXCLU') {
+          finir('exclu'); // exclu pour incidents graves
           return;
         }
         if (erreur.statut === 401) {
@@ -254,27 +262,30 @@ export function useSauvegardeAuto(p: Parametres) {
     [cleCopie, majBrouillons, synchroniser],
   );
 
-  // L'étudiant clique sur « Terminer ».
+  // L'étudiant valide le code de sortie pour terminer.
   // On envoie d'abord TOUT ; si une réponse n'a pas pu partir, on refuse de terminer
   // (sinon elle serait perdue, car le serveur refuse les sauvegardes après la fin).
-  const terminerMaintenant = useCallback(async () => {
-    await synchroniser();
-    const reste = Object.values(brouillonsRef.current).some(
-      (b) => b.version > b.envoyee,
-    );
-    if (reste) {
-      throw new ErreurReseau(
-        'Certaines réponses ne sont pas encore envoyées. Vérifiez la connexion, puis réessayez.',
+  const terminerMaintenant = useCallback(
+    async (codeSortie: string) => {
+      await synchroniser();
+      const reste = Object.values(brouillonsRef.current).some(
+        (b) => b.version > b.envoyee,
       );
-    }
-    try {
-      await terminerApi(jeton);
-    } catch (erreur) {
-      // 403 : déjà terminée côté serveur, ce n'est pas un problème.
-      if (!(erreur instanceof ErreurApi && erreur.statut === 403)) throw erreur;
-    }
-    finir('termine');
-  }, [finir, jeton, synchroniser]);
+      if (reste) {
+        throw new ErreurReseau(
+          'Certaines réponses ne sont pas encore envoyées. Vérifiez la connexion, puis réessayez.',
+        );
+      }
+      try {
+        await terminerApi(jeton, codeSortie);
+      } catch (erreur) {
+        // 403 : déjà terminée côté serveur, ce n'est pas un problème.
+        if (!(erreur instanceof ErreurApi && erreur.statut === 403)) throw erreur;
+      }
+      finir('termine');
+    },
+    [finir, jeton, synchroniser],
+  );
 
   // Au démarrage : un premier envoi (renvoie ce que la copie locale avait de plus récent
   // et recale le minuteur), puis un envoi toutes les 10 secondes.
@@ -312,5 +323,14 @@ export function useSauvegardeAuto(p: Parametres) {
     (b) => b.version > b.envoyee,
   ).length;
 
-  return { brouillons, modifier, secondes, reseau, nbNonEnvoyees, terminerMaintenant };
+  return {
+    brouillons,
+    modifier,
+    secondes,
+    reseau,
+    nbNonEnvoyees,
+    terminerMaintenant,
+    synchroniser,
+    finir,
+  };
 }

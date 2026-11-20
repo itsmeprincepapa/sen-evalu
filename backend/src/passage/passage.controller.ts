@@ -9,14 +9,15 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { LimiteEssais, LimiteEssaisGuard } from '../common/limite-essais';
 import { Participation } from '../database/entities/participation.entity';
 import { EntrerDto } from './dto/entrer.dto';
 import { SauvegarderDto } from './dto/sauvegarder.dto';
+import { SignalerIncidentDto } from './dto/signaler-incident.dto';
 import { TerminerDto } from './dto/terminer.dto';
 import { ParticipationCourante } from './participation-courante.decorator';
 import { PassageService } from './passage.service';
 import { SessionEtudiantGuard } from './session-etudiant.guard';
-import { LimiteEssais, LimiteEssaisGuard } from '../common/limite-essais';
 
 // Les adresses commencent toutes par « /passage ».
 // Le contrôleur ne fait que RECEVOIR les requêtes et passer la main au service.
@@ -24,7 +25,7 @@ import { LimiteEssais, LimiteEssaisGuard } from '../common/limite-essais';
 export class PassageController {
   constructor(private readonly passage: PassageService) {}
 
-   // POST /passage/entrer : la seule route SANS jeton (c'est elle qui le délivre).
+  // POST /passage/entrer : la seule route SANS jeton (c'est elle qui le délivre).
   // « HttpCode(200) » : par défaut un POST répond 201 (créé), ce n'est pas le cas ici.
   // Limitée : 8 essais par minute pour un même étudiant (IP + lien + e-mail), pour
   // empêcher de deviner le code d'accès ; plafond large par IP + lien (une classe entière).
@@ -38,6 +39,7 @@ export class PassageController {
   entrer(@Body() dto: EntrerDto) {
     return this.passage.entrer(dto);
   }
+
   // Toutes les routes suivantes exigent un jeton valide (« UseGuards »).
 
   // GET /passage/etat : questions, réponses déjà saisies, temps restant.
@@ -67,7 +69,21 @@ export class PassageController {
     return this.passage.ping(participation);
   }
 
-     // POST /passage/terminer : l'étudiant a fini (il doit fournir le CODE DE SORTIE).
+  // POST /passage/incidents : l'interface signale une sortie du plein écran ou un
+  // changement d'onglet. Le serveur compte, avertit ou exclut.
+  // Limitée : 30 signalements par minute et par session (garde-fou contre l'abus).
+  @Post('incidents')
+  @HttpCode(200)
+  @UseGuards(LimiteEssaisGuard, SessionEtudiantGuard)
+  @LimiteEssais({ max: 30, secondes: 60, par: 'jeton' })
+  incident(
+    @ParticipationCourante() participation: Participation,
+    @Body() dto: SignalerIncidentDto,
+  ) {
+    return this.passage.signalerIncident(participation, dto);
+  }
+
+  // POST /passage/terminer : l'étudiant a fini (il doit fournir le CODE DE SORTIE).
   // Limitée : 5 essais par minute et par session d'étudiant. La limitation passe AVANT
   // la vérification de session : elle compte tous les essais.
   @Post('terminer')
