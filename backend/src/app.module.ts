@@ -6,6 +6,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { ClassesModule } from './classes/classes.module';
+import { CorrectionModule } from './correction/correction.module';
 import { toutesLesEntites } from './database/entities';
 import { EnseignantsModule } from './enseignants/enseignants.module';
 import { EtablissementsModule } from './etablissements/etablissements.module';
@@ -71,6 +72,9 @@ import { SuiviModule } from './suivi/suivi.module';
 
     // Le suivi d'une évaluation par l'enseignant (état, journal, actions)
     SuiviModule,
+
+    // La correction : notes automatiques des QCM, totaux, correction manuelle
+    CorrectionModule,
   ],
   controllers: [AppController],
   providers: [AppService],
