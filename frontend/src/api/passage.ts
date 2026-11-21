@@ -37,11 +37,13 @@ export const sauvegarder = (
     corps: { contenu, version },
   });
 
-// Signal « je suis toujours là » (renvoie aussi le temps restant).
-export const ping = (jeton: string) =>
+// Signal « je suis toujours là » (renvoie aussi le temps restant). Il peut porter le
+// numéro de la question affichée, que l'enseignant voit dans le suivi en direct.
+export const ping = (jeton: string, question?: number) =>
   appeler<{ ok: boolean; tempsRestantSecondes: number }>('/passage/ping', {
     methode: 'POST',
     jeton,
+    corps: question === undefined ? undefined : { question },
   });
 
 // Signaler un incident : sortie du plein écran ou changement d'onglet.

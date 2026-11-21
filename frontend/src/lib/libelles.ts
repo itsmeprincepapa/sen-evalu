@@ -35,3 +35,14 @@ export const LIBELLES_TYPE_QUESTION: Record<string, string> = {
   ouverte: 'Question ouverte',
   code: 'Question de code',
 };
+
+
+// Le texte affiché pour chaque ligne du journal des incidents.
+export const LIBELLES_INCIDENT: Record<string, string> = {
+  sortie_plein_ecran: 'a quitté le plein écran',
+  changement_onglet: 'a changé d’onglet ou de fenêtre',
+  coupure: 'connexion coupée',
+  reconnexion: 'reconnecté',
+  exclusion: 'exclu de l’évaluation',
+  reintegration: 'réintégré',
+};

@@ -131,7 +131,15 @@ function ListeEvaluations({ idEtablissement }: { idEtablissement: string }) {
                     )}{" "}
                     · {validees} validé{validees > 1 ? "s" : ""}
                   </p>
-                  <div className="flex gap-2">
+                                    <div className="flex gap-2">
+                    {e.statut !== "brouillon" && (
+                      <Link
+                        to={`/ecole/evaluations/${e.id}/suivi`}
+                        className={classesBouton("secondaire", "m")}
+                      >
+                        Suivi en direct
+                      </Link>
+                    )}
                     <Link
                       to={`/ecole/evaluations/${e.id}/modifier`}
                       className={classesBouton("secondaire", "m")}

@@ -13,7 +13,7 @@ import { PageFormulaireEvaluation } from './pages/ecole/PageFormulaireEvaluation
 import { PageInscriptions } from './pages/ecole/PageInscriptions';
 import { PageDesign } from './pages/PageDesign';
 import { PageQuestions } from './pages/ecole/PageQuestions';
-
+import { PageSuivi } from './pages/ecole/PageSuivi';
 // Le plan des adresses de l'application.
 export default function App() {
   return (
@@ -94,6 +94,14 @@ export default function App() {
               element={
                 <RouteProtegee role="enseignant">
                   <PageQuestions />
+                </RouteProtegee>
+              }
+            />
+                        <Route
+              path="/ecole/evaluations/:id/suivi"
+              element={
+                <RouteProtegee role="enseignant">
+                  <PageSuivi />
                 </RouteProtegee>
               }
             />

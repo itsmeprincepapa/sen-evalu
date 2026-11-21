@@ -68,7 +68,8 @@ interface Parametres {
   cleCopie: string; // clé de la copie locale (propre à cette évaluation et à cet étudiant)
   reponsesInitiales: ReponseServeur[];
   copieInitiale: CopieLocale;
-  secondesInitiales: number;
+   secondesInitiales: number;
+  questionAffichee: number; // numéro de la question affichée (à partir de 1)
   onFin: (motif: MotifFin) => void;
 }
 
@@ -79,6 +80,7 @@ export function useSauvegardeAuto(p: Parametres) {
     reponsesInitiales,
     copieInitiale,
     secondesInitiales,
+    questionAffichee,
     onFin,
   } = p;
 
@@ -110,11 +112,17 @@ export function useSauvegardeAuto(p: Parametres) {
     undefined,
   );
 
-  // On garde la dernière version de « onFin » sans relancer les effets.
+   // On garde la dernière version de « onFin » sans relancer les effets.
   const onFinRef = useRef(onFin);
   useEffect(() => {
     onFinRef.current = onFin;
   }, [onFin]);
+
+  // Le numéro de la question affichée : envoyé avec le « ping » pour le suivi de l'enseignant.
+  const questionRef = useRef(questionAffichee);
+  useEffect(() => {
+    questionRef.current = questionAffichee;
+  }, [questionAffichee]);
 
   // Met à jour les brouillons dans la ref ET dans l'état.
   const majBrouillons = useCallback(
@@ -187,8 +195,7 @@ export function useSauvegardeAuto(p: Parametres) {
 
           if (aEnvoyer.length === 0) {
             // Rien à envoyer : un « ping » prouve qu'on est là et recale le minuteur.
-            const accuse = await ping(jeton);
-            recaler(accuse.tempsRestantSecondes);
+            const accuse = await ping(jeton, questionRef.current);            recaler(accuse.tempsRestantSecondes);
           } else {
             for (const [questionId, brouillon] of aEnvoyer) {
               const accuse = await sauvegarder(

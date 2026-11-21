@@ -54,6 +54,8 @@ function EcranBloquant({ children }: { children: ReactNode }) {
 
 // L'écran de l'évaluation : en-tête (nom, minuteur, état), question, navigation.
 export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
+    const [index, setIndex] = useState(0); // numéro de la question affichée
+
   // Tout le travail invisible (sauvegarde, minuteur, copie locale) est dans ce hook.
   const {
     brouillons,
@@ -69,7 +71,8 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
     cleCopie,
     reponsesInitiales: entree.reponses,
     copieInitiale,
-    secondesInitiales: entree.tempsRestantSecondes,
+        secondesInitiales: entree.tempsRestantSecondes,
+    questionAffichee: index + 1,
     onFin,
   });
 
@@ -90,8 +93,7 @@ export function Epreuve({ entree, cleCopie, copieInitiale, onFin }: Props) {
     finir,
   });
 
-  const [index, setIndex] = useState(0); // numéro de la question affichée
-  const [message, setMessage] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
   const [terminaison, setTerminaison] = useState(false);
   const [saisieSortie, setSaisieSortie] = useState(false); // l'encadré du code de sortie est ouvert
   const [codeSortie, setCodeSortie] = useState("");

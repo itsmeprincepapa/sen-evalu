@@ -304,3 +304,59 @@ export interface ResultatIncident {
   nbIncidentsGraves: number;
   seuil: number;
 }
+
+
+// --- Suivi en direct (étape 8D) ---
+
+// Ce que l'enseignant voit de la connexion d'un étudiant.
+export type EtatConnexion =
+  | 'pas_entre'
+  | 'connecte'
+  | 'coupe'
+  | 'exclu'
+  | 'termine';
+
+// Une ligne du tableau de suivi : la situation d'UN étudiant.
+export interface LigneEtudiant {
+  participationId: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  statut: string;
+  connexion: EtatConnexion;
+  nbIncidentsGraves: number;
+  tempsSupplementaireSecondes: number;
+  tempsRestantSecondes: number | null;
+  questionEnCours: number | null; // numéro de la question affichée (à partir de 1)
+}
+
+// Une ligne du journal des incidents.
+export interface LigneJournal {
+  id: string;
+  heure: string; // date au format ISO
+  type: string;
+  gravite: string; // « grave » ou « information »
+  details: string | null;
+  participationId: string;
+  nom: string;
+  prenom: string;
+}
+
+// Les informations générales de l'évaluation suivie.
+export interface EvaluationSuivie {
+  id: string;
+  titre: string;
+  statut: string;
+  debut: string;
+  fin: string;
+  dureeMinutes: number;
+  toleranceCoupureSecondes: number;
+  seuilIncidentsGraves: number;
+  nombreQuestions: number;
+}
+
+// Ce que renvoie le serveur : l'évaluation et la ligne de chaque étudiant.
+export interface InstantaneSuivi {
+  evaluation: EvaluationSuivie;
+  etudiants: LigneEtudiant[];
+}
