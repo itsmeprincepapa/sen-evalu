@@ -12,6 +12,7 @@ import {
 import { LimiteEssais, LimiteEssaisGuard } from '../common/limite-essais';
 import { Participation } from '../database/entities/participation.entity';
 import { EntrerDto } from './dto/entrer.dto';
+import { PingDto } from './dto/ping.dto';
 import { SauvegarderDto } from './dto/sauvegarder.dto';
 import { SignalerIncidentDto } from './dto/signaler-incident.dto';
 import { TerminerDto } from './dto/terminer.dto';
@@ -61,12 +62,16 @@ export class PassageController {
     return this.passage.sauvegarder(participation, questionId, dto);
   }
 
-  // POST /passage/ping : signal « je suis toujours là ».
+  // POST /passage/ping : signal « je suis toujours là » (avec, si l'interface le souhaite,
+  // le numéro de la question affichée).
   @Post('ping')
   @HttpCode(200)
   @UseGuards(SessionEtudiantGuard)
-  ping(@ParticipationCourante() participation: Participation) {
-    return this.passage.ping(participation);
+  ping(
+    @ParticipationCourante() participation: Participation,
+    @Body() dto: PingDto,
+  ) {
+    return this.passage.ping(participation, dto);
   }
 
   // POST /passage/incidents : l'interface signale une sortie du plein écran ou un

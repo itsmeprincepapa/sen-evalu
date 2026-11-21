@@ -9,6 +9,7 @@ import { Evaluation } from '../database/entities/evaluation.entity';
 import { Incident } from '../database/entities/incident.entity';
 import { Membre } from '../database/entities/membre.entity';
 import { Participation } from '../database/entities/participation.entity';
+import { Question } from '../database/entities/question.entity';
 import {
   GraviteIncident,
   StatutEvaluation,
@@ -17,10 +18,13 @@ import {
 } from '../database/enums';
 import { calculerFinPrevue } from '../passage/chrono';
 import { MARGE_FIN_SECONDES } from '../passage/constantes';
+import { BusSuivi } from './bus-suivi';
 import { etatConnexion } from './etat-connexion';
+import { type LigneEtudiant, versLigneJournal } from './types';
 
 // Le suivi d'une évaluation par son enseignant : état des étudiants, journal, actions.
-// Toutes les méthodes vérifient que l'évaluation appartient à CET enseignant.
+// Les méthodes publiques qui prennent un « membre » vérifient que l'évaluation appartient
+// à CET enseignant.
 @Injectable()
 export class SuiviService {
   constructor(
@@ -30,6 +34,9 @@ export class SuiviService {
     private readonly participations: Repository<Participation>,
     @InjectRepository(Incident)
     private readonly incidents: Repository<Incident>,
+    @InjectRepository(Question)
+    private readonly questions: Repository<Question>,
+    private readonly bus: BusSuivi,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -37,48 +44,34 @@ export class SuiviService {
   // ---------------------------------------------------------------------------
   async etat(membre: Membre, evaluationId: string) {
     const evaluation = await this.evaluationDuProprietaire(membre, evaluationId);
-    const participations = await this.participations.find({
-      where: {
-        evaluationId: evaluation.id,
-        statut: In([
-          StatutParticipation.VALIDE,
-          StatutParticipation.EN_COURS,
-          StatutParticipation.EXCLU,
-          StatutParticipation.TERMINE,
-        ]),
-      },
-      order: { nom: 'ASC', prenom: 'ASC' },
-    });
+    return this.construireInstantane(evaluation);
+  }
 
-    const maintenant = Date.now();
-    return {
-      evaluation: {
-        id: evaluation.id,
-        titre: evaluation.titre,
-        statut: evaluation.statut,
-        debut: evaluation.debut,
-        fin: evaluation.fin,
-        dureeMinutes: evaluation.dureeMinutes,
-        toleranceCoupureSecondes: evaluation.toleranceCoupureSecondes,
-        seuilIncidentsGraves: evaluation.seuilIncidentsGraves,
-      },
-      etudiants: participations.map((p) => ({
-        participationId: p.id,
-        nom: p.nom,
-        prenom: p.prenom,
-        email: p.email,
-        statut: p.statut,
-        connexion: etatConnexion(
-          p,
-          evaluation.toleranceCoupureSecondes,
-          maintenant,
-        ),
-        nbIncidentsGraves: p.nbIncidentsGraves,
-        tempsSupplementaireSecondes: p.tempsSupplementaireSecondes,
-        tempsRestantSecondes: this.tempsRestant(p, maintenant),
-        derniereActiviteAt: p.derniereActiviteAt,
-      })),
-    };
+  // Même chose SANS vérification du propriétaire : réservé à la passerelle, qui a déjà
+  // vérifié les droits au moment où l'enseignant a rejoint l'évaluation.
+  async instantane(evaluationId: string) {
+    const evaluation = await this.evaluations.findOneByOrFail({
+      id: evaluationId,
+    });
+    return this.construireInstantane(evaluation);
+  }
+
+  // La ligne d'UN étudiant (pour la passerelle), ou « null » s'il n'existe pas.
+  async ligneEtudiant(
+    evaluationId: string,
+    participationId: string,
+  ): Promise<LigneEtudiant | null> {
+    const evaluation = await this.evaluations.findOneBy({ id: evaluationId });
+    const participation = await this.participations.findOneBy({
+      id: participationId,
+      evaluationId,
+    });
+    if (!evaluation || !participation) return null;
+    return this.versLigne(
+      participation,
+      evaluation.toleranceCoupureSecondes,
+      Date.now(),
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -92,16 +85,7 @@ export class SuiviService {
       order: { creeLe: 'DESC' },
       take: 500,
     });
-    return lignes.map((i) => ({
-      id: i.id,
-      heure: i.creeLe,
-      type: i.type,
-      gravite: i.gravite,
-      details: i.details,
-      participationId: i.participationId,
-      nom: i.participation.nom,
-      prenom: i.participation.prenom,
-    }));
+    return lignes.map((i) => versLigneJournal(i, i.participation));
   }
 
   // ---------------------------------------------------------------------------
@@ -142,6 +126,7 @@ export class SuiviService {
       await this.participations.update(participation.id, {
         tempsSupplementaireSecondes: total,
       });
+      this.annoncerChangement(evaluation.id, participation.id);
       return {
         tempsSupplementaireSecondes: total,
         tempsRestantSecondes: null,
@@ -164,6 +149,7 @@ export class SuiviService {
       tempsSupplementaireSecondes: total,
       finPrevueAt: finPrevue,
     });
+    this.annoncerChangement(evaluation.id, participation.id);
     return {
       tempsSupplementaireSecondes: total,
       tempsRestantSecondes: Math.max(
@@ -218,7 +204,7 @@ export class SuiviService {
       tempsSupplementaireSecondes: total,
       finPrevueAt: finPrevue,
     });
-    await this.incidents.save(
+    const incident = await this.incidents.save(
       this.incidents.create({
         participationId: participation.id,
         type: TypeIncident.REINTEGRATION,
@@ -228,6 +214,8 @@ export class SuiviService {
           : 'Réintégré par l’enseignant',
       }),
     );
+    this.annoncerIncident(evaluation.id, incident, participation);
+    this.annoncerChangement(evaluation.id, participation.id);
     return {
       ok: true,
       tempsRestantSecondes: Math.max(
@@ -256,7 +244,7 @@ export class SuiviService {
     }
 
     await this.participations.update(participation.id, { sessionId: null });
-    await this.incidents.save(
+    const incident = await this.incidents.save(
       this.incidents.create({
         participationId: participation.id,
         type: TypeIncident.RECONNEXION,
@@ -264,6 +252,8 @@ export class SuiviService {
         details: 'Reconnexion autorisée par l’enseignant',
       }),
     );
+    this.annoncerIncident(evaluation.id, incident, participation);
+    this.annoncerChangement(evaluation.id, participation.id);
     return { ok: true };
   }
 
@@ -284,12 +274,90 @@ export class SuiviService {
     await this.evaluations.update(evaluation.id, {
       statut: StatutEvaluation.TERMINEE,
     });
+    this.annoncerChangement(evaluation.id); // toute l'évaluation a changé
     return { terminees: resultat.affected ?? 0 };
   }
 
   // ===========================================================================
   // Fonctions internes
   // ===========================================================================
+
+  // Construit l'état de l'évaluation : informations générales et ligne de chaque étudiant.
+  private async construireInstantane(evaluation: Evaluation) {
+    const participations = await this.participations.find({
+      where: {
+        evaluationId: evaluation.id,
+        statut: In([
+          StatutParticipation.VALIDE,
+          StatutParticipation.EN_COURS,
+          StatutParticipation.EXCLU,
+          StatutParticipation.TERMINE,
+        ]),
+      },
+      order: { nom: 'ASC', prenom: 'ASC' },
+    });
+    const nombreQuestions = await this.questions.countBy({
+      evaluationId: evaluation.id,
+    });
+
+    const maintenant = Date.now();
+    return {
+      evaluation: {
+        id: evaluation.id,
+        titre: evaluation.titre,
+        statut: evaluation.statut,
+        debut: evaluation.debut,
+        fin: evaluation.fin,
+        dureeMinutes: evaluation.dureeMinutes,
+        toleranceCoupureSecondes: evaluation.toleranceCoupureSecondes,
+        seuilIncidentsGraves: evaluation.seuilIncidentsGraves,
+        nombreQuestions,
+      },
+      etudiants: participations.map((p) =>
+        this.versLigne(p, evaluation.toleranceCoupureSecondes, maintenant),
+      ),
+    };
+  }
+
+  // La ligne d'un étudiant, telle que l'enseignant la voit.
+  private versLigne(
+    participation: Participation,
+    toleranceCoupureSecondes: number,
+    maintenant: number,
+  ): LigneEtudiant {
+    const enCours = participation.statut === StatutParticipation.EN_COURS;
+    return {
+      participationId: participation.id,
+      nom: participation.nom,
+      prenom: participation.prenom,
+      email: participation.email,
+      statut: participation.statut,
+      connexion: etatConnexion(participation, toleranceCoupureSecondes, maintenant),
+      nbIncidentsGraves: participation.nbIncidentsGraves,
+      tempsSupplementaireSecondes: participation.tempsSupplementaireSecondes,
+      tempsRestantSecondes: this.tempsRestant(participation, maintenant),
+      questionEnCours: enCours ? this.bus.questionDe(participation.id) : null,
+      derniereActiviteAt: participation.derniereActiviteAt,
+    };
+  }
+
+  // Prévient la passerelle qu'un étudiant (ou toute l'évaluation) a changé.
+  private annoncerChangement(evaluationId: string, participationId?: string) {
+    this.bus.publier({ type: 'changement', evaluationId, participationId });
+  }
+
+  // Prévient la passerelle qu'une ligne vient d'être écrite dans le journal.
+  private annoncerIncident(
+    evaluationId: string,
+    incident: Incident,
+    participation: Participation,
+  ) {
+    this.bus.publier({
+      type: 'incident',
+      evaluationId,
+      incident: versLigneJournal(incident, participation),
+    });
+  }
 
   // Retrouve l'évaluation SEULEMENT si elle appartient à CET enseignant, dans CET
   // établissement. Sinon : « introuvable ».
@@ -321,7 +389,10 @@ export class SuiviService {
 
   // Temps restant en secondes pour un étudiant dont le chronomètre tourne (en cours ou
   // exclu : le chronomètre continue pendant l'exclusion) ; sinon « null ».
-  private tempsRestant(participation: Participation, maintenant: number): number | null {
+  private tempsRestant(
+    participation: Participation,
+    maintenant: number,
+  ): number | null {
     const tourne =
       participation.statut === StatutParticipation.EN_COURS ||
       participation.statut === StatutParticipation.EXCLU;

@@ -24,9 +24,12 @@ import {
   TypeIncident,
   TypeQuestion,
 } from '../database/enums';
+import { BusSuivi } from '../suivi/bus-suivi';
+import { versLigneJournal } from '../suivi/types';
 import { calculerFinPrevue } from './chrono';
 import { MARGE_FIN_SECONDES } from './constantes';
 import { EntrerDto } from './dto/entrer.dto';
+import { PingDto } from './dto/ping.dto';
 import { SauvegarderDto } from './dto/sauvegarder.dto';
 import { SignalerIncidentDto } from './dto/signaler-incident.dto';
 import { TerminerDto } from './dto/terminer.dto';
@@ -64,6 +67,8 @@ export class PassageService {
     private readonly reponses: Repository<Reponse>,
     @InjectRepository(Incident)
     private readonly incidents: Repository<Incident>,
+    // Le « bus » du suivi : sert à prévenir l'enseignant, en temps réel, de ce qui se passe.
+    private readonly bus: BusSuivi,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -183,6 +188,9 @@ export class PassageService {
       });
     }
 
+    // L'enseignant qui suit l'évaluation voit tout de suite l'étudiant arriver.
+    this.annoncerChangement(participation);
+
     // On renvoie le jeton et tout l'état de l'évaluation.
     return {
       jeton: participation.sessionId,
@@ -253,11 +261,15 @@ export class PassageService {
 
   // ---------------------------------------------------------------------------
   // PING : « je suis toujours là ». Sert à afficher « connecté » ou « coupé » à
-  // l'enseignant, et à recaler le minuteur de l'étudiant.
+  // l'enseignant, et à recaler le minuteur de l'étudiant. Il peut porter le numéro de la
+  // question affichée, que l'enseignant voit dans le suivi en direct.
   // ---------------------------------------------------------------------------
-  async ping(participation: Participation) {
+  async ping(participation: Participation, dto: PingDto) {
     await this.verifierPeutRepondre(participation);
     await this.marquerActivite(participation);
+    if (dto.question !== undefined) {
+      this.bus.noterQuestion(participation.id, dto.question);
+    }
     return {
       ok: true,
       tempsRestantSecondes: this.tempsRestantSecondes(participation),
@@ -308,7 +320,7 @@ export class PassageService {
     this.purgerAntiDoublon(maintenant);
 
     // On enregistre l'incident dans le journal et on augmente le compteur.
-    await this.incidents.save(
+    const incident = await this.incidents.save(
       this.incidents.create({
         participationId: participation.id,
         type: dto.type,
@@ -316,6 +328,7 @@ export class PassageService {
         details: null,
       }),
     );
+    this.annoncerIncident(participation, incident); // alerte en temps réel à l'enseignant
     await this.participations.increment(
       { id: participation.id },
       'nbIncidentsGraves',
@@ -333,7 +346,7 @@ export class PassageService {
       await this.participations.update(participation.id, {
         statut: StatutParticipation.EXCLU,
       });
-      await this.incidents.save(
+      const exclusion = await this.incidents.save(
         this.incidents.create({
           participationId: participation.id,
           type: TypeIncident.EXCLUSION,
@@ -341,6 +354,8 @@ export class PassageService {
           details: `Seuil de ${seuil} incident(s) grave(s) atteint`,
         }),
       );
+      this.annoncerIncident(participation, exclusion);
+      this.annoncerChangement(participation);
       this.logger.warn(`Étudiant exclu : participation ${participation.id}`);
       return {
         ok: true,
@@ -351,6 +366,7 @@ export class PassageService {
       };
     }
 
+    this.annoncerChangement(participation);
     return {
       ok: true,
       ignore: false,
@@ -422,6 +438,7 @@ export class PassageService {
     await this.participations.update(participation.id, {
       statut: StatutParticipation.TERMINE,
     });
+    this.annoncerChangement(participation);
   }
 
   // Vérifie que l'étudiant peut encore répondre ; sinon refuse avec un « code »
@@ -590,7 +607,7 @@ export class PassageService {
     if (silenceMs <= evaluation.toleranceCoupureSecondes * 1000) return;
 
     const secondes = Math.round(silenceMs / 1000);
-    await this.incidents.save([
+    const lignes = await this.incidents.save([
       this.incidents.create({
         participationId: participation.id,
         type: TypeIncident.COUPURE,
@@ -604,6 +621,29 @@ export class PassageService {
         details: null,
       }),
     ]);
+    for (const ligne of lignes) this.annoncerIncident(participation, ligne);
+    this.annoncerChangement(participation);
+  }
+
+  // Prévient le suivi en direct qu'un étudiant a changé de situation.
+  private annoncerChangement(participation: Participation): void {
+    this.bus.publier({
+      type: 'changement',
+      evaluationId: participation.evaluationId,
+      participationId: participation.id,
+    });
+  }
+
+  // Prévient le suivi en direct d'une nouvelle ligne du journal (alerte en temps réel).
+  private annoncerIncident(
+    participation: Participation,
+    incident: Incident,
+  ): void {
+    this.bus.publier({
+      type: 'incident',
+      evaluationId: participation.evaluationId,
+      incident: versLigneJournal(incident, participation),
+    });
   }
 
   // Supprime de temps en temps les heures d'incident trop anciennes (elles ne servent
