@@ -360,3 +360,88 @@ export interface InstantaneSuivi {
   evaluation: EvaluationSuivie;
   etudiants: LigneEtudiant[];
 }
+
+
+// --- Correction (étape 9) ---
+
+// Le compteur « N corrigées sur M ».
+export interface Compteurs {
+  corrigees: number;
+  total: number;
+}
+
+// Une ligne du tableau des résultats : une copie.
+export interface LigneCopie {
+  participationId: string;
+  nom: string;
+  prenom: string;
+  email: string;
+  statut: string; // « termine » ou « exclu »
+  nbIncidentsGraves: number;
+  noteQcm: number; // total des points des QCM (automatique)
+  noteTotale: number;
+  nbACorriger: number; // réponses écrites qui attendent encore une note
+  corrigee: boolean;
+}
+
+// Ce que renvoie « GET .../correction » : le tableau des résultats.
+export interface EtatCorrection {
+  evaluation: {
+    id: string;
+    titre: string;
+    statut: string;
+    totalPoints: number;
+    nombreQuestions: number;
+  };
+  compteurs: Compteurs;
+  copies: LigneCopie[];
+}
+
+// Une proposition de QCM vue dans une copie.
+export interface OptionDeCopie {
+  id: string;
+  texte: string;
+  correcte: boolean; // c'est une bonne réponse
+  cochee: boolean; // l'étudiant l'a cochée
+}
+
+// Une question vue dans une copie, avec la réponse de l'étudiant et sa note.
+export interface QuestionDeCopie {
+  questionId: string;
+  ordre: number;
+  type: TypeQuestion;
+  enonce: string;
+  points: number;
+  langage: string | null;
+  notation: 'auto' | 'manuelle'; // « auto » : QCM, noté par la plateforme
+  options: OptionDeCopie[] | null;
+  reponse: string | null; // le texte ou le programme écrit (jamais pour un QCM)
+  vide: boolean; // l'étudiant n'a rien répondu
+  note: number | null;
+  commentaire: string | null;
+}
+
+// Ce que renvoie « GET .../correction/<copie> » : une copie à corriger.
+export interface CopieACorriger {
+  evaluation: {
+    id: string;
+    titre: string;
+    statut: string;
+    totalPoints: number;
+  };
+  copie: LigneCopie & { numero: number; total: number };
+  precedente: string | null;
+  suivante: string | null;
+  prochaineACorriger: string | null;
+  questions: QuestionDeCopie[];
+}
+
+// Ce que renvoie le serveur après l'enregistrement d'une note.
+export interface ResultatNote {
+  note: number;
+  commentaire: string | null;
+  copie: { noteTotale: number; nbACorriger: number; corrigee: boolean };
+  compteurs: Compteurs;
+  statutEvaluation: string;
+  prochaineACorriger: string | null;
+}

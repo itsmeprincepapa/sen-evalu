@@ -14,6 +14,9 @@ import { PageInscriptions } from './pages/ecole/PageInscriptions';
 import { PageDesign } from './pages/PageDesign';
 import { PageQuestions } from './pages/ecole/PageQuestions';
 import { PageSuivi } from './pages/ecole/PageSuivi';
+import { PageCopie } from './pages/ecole/PageCopie';
+import { PageResultats } from './pages/ecole/PageResultats';
+
 // Le plan des adresses de l'application.
 export default function App() {
   return (
@@ -102,6 +105,22 @@ export default function App() {
               element={
                 <RouteProtegee role="enseignant">
                   <PageSuivi />
+                </RouteProtegee>
+              }
+            />
+                        <Route
+              path="/ecole/evaluations/:id/correction"
+              element={
+                <RouteProtegee role="enseignant">
+                  <PageResultats />
+                </RouteProtegee>
+              }
+            />
+            <Route
+              path="/ecole/evaluations/:id/correction/:participationId"
+              element={
+                <RouteProtegee role="enseignant">
+                  <PageCopie />
                 </RouteProtegee>
               }
             />
